@@ -89,3 +89,7 @@ jobs:
           git tag
           python -m build .
           twine upload dist/*
+        #uses: pypa/gh-action-pypi-publish@release/v1
+        #with:
+        # password: ${{ secrets.NAPARI_PYPI_TOKEN }}
+        # password: ${{ secrets.TWINE_PYPI_TOKEN }}
