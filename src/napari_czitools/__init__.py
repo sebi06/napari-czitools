@@ -4,7 +4,9 @@ except ImportError:
     __version__ = "unknown"
 
 from ._reader import napari_get_reader
-from ._sample_data import make_sample_data
+
+# from ._sample_data import make_sample_data
+from ._sample_data import celldivision_data, wellplate_data
 from ._widget import (
     ExampleQWidget,
     ImageThreshold,
@@ -14,7 +16,9 @@ from ._widget import (
 
 __all__ = (
     "napari_get_reader",
-    "make_sample_data",
+    # "make_sample_data",
+    "celldivision_data",
+    "wellplate_data",
     "ExampleQWidget",
     "ImageThreshold",
     "threshold_autogenerate_widget",

@@ -15,9 +15,13 @@ contributions:
       python_name: napari_czitools._reader:napari_get_reader
       title: Open *.czi image files with CziTools
 
-    - id: napari-czitools.make_sample_data
-      python_name: napari_czitools._sample_data:make_sample_data
-      title: Load sample CZI data from CziTools
+    - id: napari-czitools.celldivision_data
+      python_name: napari_czitools._sample_data:celldivision_data
+      title: Load 5D Data
+
+    - id: napari-czitools.wellplate_data
+      python_name: napari_czitools._sample_data:wellplate_data
+      title: Load WellPlate Data
 
     - id: napari-czitools.make_container_widget
       python_name: napari_czitools:ImageThreshold
@@ -41,9 +45,13 @@ contributions:
       filename_patterns: ['*.czi']
 
   sample_data:
-    - command: napari-czitools.make_sample_data
-      display_name: Open 5D CZI sample data
-      key: czitools_sample.1  #5unique_id.1
+    - command: napari-czitools.celldivision_data
+      display_name: Celldivision 5D dataset
+      key: unique_id.0
+
+    - command: napari-czitools.wellplate_data
+      display_name: WellPlate 6D dataset
+      key: unique_id.1
 
   widgets:
     - command: napari-czitools.make_container_widget
