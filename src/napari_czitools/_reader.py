@@ -1,8 +1,12 @@
-import napari
+from czitools.utils import logging_tools
+
+from ._io import CZIDataLoader
 import numpy as np
+from czitools.metadata_tools import czi_metadata as czimd
 from czitools.read_tools import read_tools
 from czitools.utils import logging_tools
 from napari.utils.colormaps import Colormap
+import napari
 
 logger = logging_tools.set_logging()
 
@@ -33,6 +37,54 @@ def napari_get_reader(path: str):
 
     # otherwise we return the *function* that can read ``path``.
     return reader_function
+
+
+# def reader_function(
+#     path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True
+# ):
+#     """Take a path and return a list of LayerData tuples.
+
+#     This function reads a CZI file and adds its data to the viewer. It uses
+#     the CZIDataLoader class to handle the file loading and processing.
+
+#     Parameters
+#     ----------
+#     path : str
+#         Path to the CZI file.
+#     zoom : float, optional
+#         Zoom factor to apply to the image data. Default is 1.0.
+#     use_dask : bool, optional
+#         Whether to use dask for lazy loading of the data. Default is False.
+#     chunk_zyx : bool, optional
+#         Whether to chunk the data in the ZYX dimensions. Default is False.
+#     use_xarray : bool, optional
+#         Whether to use xarray for data representation. Default is True.
+
+#     Returns
+#     -------
+#     layer_data : list of tuples
+#         A list of LayerData tuples. Each tuple contains (data, metadata, layer_type),
+#         where data is a numpy array or None, metadata is a dict of keyword arguments
+#         for the corresponding viewer.add_* method in Napari, and layer_type is a
+#         lower-case string naming the type of layer. In this implementation, it
+#         returns [(None,)] to allow customizing the viewer after the layers are added.
+#     """
+
+#     # call the function to add the data to the viewer
+#     czi = CZIDataLoader(
+#         path,
+#         zoom=zoom,
+#         use_dask=use_dask,
+#         chunk_zyx=chunk_zyx,
+#         use_xarray=use_xarray,
+#         show_metadata="table",
+#     )
+
+#     # add the data to the viewer
+#     czi.add_to_viewer()
+
+#     # return nothing to allow customizing the viewer after the layers are added
+#     return [(None,)]
 
 
 def reader_function(
