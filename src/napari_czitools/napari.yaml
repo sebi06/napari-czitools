@@ -23,6 +23,10 @@ contributions:
       python_name: napari_czitools._sample_data:wellplate_data
       title: Load WellPlate Data
 
+    - id: napari-czitools.zstack_data
+      python_name: napari_czitools._sample_data:zstack_data
+      title: Load 3D Z-Stack Data
+
     - id: napari-czitools.make_container_widget
       python_name: napari_czitools:ImageThreshold
       title: Make threshold Container widget
@@ -52,6 +56,9 @@ contributions:
     - command: napari-czitools.wellplate_data
       display_name: WellPlate 6D dataset
       key: unique_id.1
+    - command: napari-czitools.zstack_data
+      display_name: Z-Stack 3D dataset
+      key: unique_id.2
 
   widgets:
     - command: napari-czitools.make_container_widget
