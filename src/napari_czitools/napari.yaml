@@ -58,7 +58,7 @@ contributions:
       key: unique_id.1
 
     - command: napari-czitools.zstack_data
-      display_name: 3D Z-Stack dataset
+      display_name: Z-Stack dataset
       key: unique_id.2
 
   widgets:
