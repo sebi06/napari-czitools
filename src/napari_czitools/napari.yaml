@@ -11,7 +11,7 @@ categories: ["IO"]
 contributions:
   commands:
 
-    - id: napari-czitools.get_reader
+    - id: napari-czitools.get_reader_adv
       python_name: napari_czitools._reader:napari_get_reader
       title: Open *.czi image files with CziTools
 
@@ -25,7 +25,7 @@ contributions:
 
     - id: napari-czitools.zstack_data
       python_name: napari_czitools._sample_data:zstack_data
-      title: Load 3D Z-Stack Data
+      title: Load ZStack Data
 
     - id: napari-czitools.make_container_widget
       python_name: napari_czitools:ImageThreshold
@@ -44,7 +44,7 @@ contributions:
       title: Make example QWidget
 
   readers:
-    - command: napari-czitools.get_reader
+    - command: napari-czitools.get_reader_adv
       accepts_directories: false
       filename_patterns: ['*.czi']
 
@@ -58,6 +58,10 @@ contributions:
       key: unique_id.1
     - command: napari-czitools.zstack_data
       display_name: Z-Stack 3D dataset
+      key: unique_id.2
+
+    - command: napari-czitools.zstack_data
+      display_name: Z-Stack dataset
       key: unique_id.2
 
   widgets:

@@ -1,8 +1,7 @@
-import napari
-import numpy as np
 from czitools.read_tools import read_tools
 from czitools.utils import logging_tools
-from napari.utils.colormaps import Colormap
+
+from ._io import CZIDataLoader, process_channels
 
 logger = logging_tools.set_logging()
 
@@ -20,36 +19,78 @@ def napari_get_reader(path: str):
         return None
 
     # otherwise we return the *function* that can read ``path``.
-    return reader_function
+    return reader_function_adv
 
 
-def reader_function(
+# this function is called when using Open -> Files(s) directly from the menu
+def reader_function_adv(
     path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True
 ):
+    """Take a path, add layers and metadata to the viewer.
+
+    This function reads a CZI file and adds its data to the viewer. It uses
+    the CZIDataLoader class to handle the file loading and processing.
+
+    Parameters
+    ----------
+    path : str
+        Path to the CZI file.
+    zoom : float, optional
+        Zoom factor to apply to the image data. Default is 1.0.
+    use_dask : bool, optional
+        Whether to use dask for lazy loading of the data. Default is False.
+    chunk_zyx : bool, optional
+        Whether to chunk the data in the ZYX dimensions. Default is False.
+    use_xarray : bool, optional
+        Whether to use xarray for data representation. Default is True.
+
+    Returns
+    -------
+    layer_data : list of tuples
+        A list of LayerData tuples. Each tuple contains (data, metadata, layer_type),
+        where data is a numpy array or None, metadata is a dict of keyword arguments
+        for the corresponding viewer.add_* method in Napari, and layer_type is a
+        lower-case string naming the type of layer. In this implementation, it
+        returns [(None,)] to allow customizing the viewer after the layers are added.
+    """
 
     # call the function to add the data to the viewer
-    _add_czi_data(
+    czi = CZIDataLoader(
         path,
         zoom=zoom,
         use_dask=use_dask,
         chunk_zyx=chunk_zyx,
         use_xarray=use_xarray,
+        show_metadata="table",
     )
+
+    # add the data to the viewer
+    czi.add_to_viewer()
 
     # return nothing to allow customizing the viewer after the layers are added
     return [(None,)]
 
 
-def _add_czi_data(
-    path: str,
-    zoom: float = 1.0,
-    use_dask: bool = False,
-    chunk_zyx: bool = False,
-    use_xarray: bool = True,
+# this one is use to show the provided sample data
+# it does not allow to show the metadata because in order to work we need to return a
+# layerdata tuple.
+#
+# See also: https://forum.image.sc/t/file-open-vs-open-sample-using-my-own-napari-plugin/111123/8?u=sebi06
+#
+def reader_function(
+    path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True
 ):
 
-    # get napari viewer from current process
-    viewer = napari.current_viewer()
+    # # call the function to add the data to the viewer
+    # layers = _add_czi_data(
+    #     path,
+    #     zoom=zoom,
+    #     use_dask=use_dask,
+    #     chunk_zyx=chunk_zyx,
+    #     use_xarray=use_xarray,
+    # )
+
+    sample_data = []
 
     # return an array with dimension order STCZYX(A)
     array6d, metadata = read_tools.read_6darray(
@@ -60,62 +101,66 @@ def _add_czi_data(
         use_xarray=use_xarray,
     )
 
-    # loop over all channels
-    for ch in range(array6d.sizes["C"]):
+    # get the channel layers
+    channel_layers = process_channels(array6d, metadata)
 
-        # extract channel subarray
-        sub_array = array6d.sel(C=ch)
+    for chl in channel_layers:
 
-        # get the scaling factors for that channel and adapt Z-axis scaling
-        scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
-            "zx_sf"
-        ]
-
-        # remove the last scaling factor in case of an RGB image
-        if "A" in sub_array.dims:
-            # remove the A axis from the scaling factors
-            scalefactors.pop(sub_array.get_axis_num("A"))
-
-        # get colors and channel name
-        chname = metadata.channelinfo.names[ch]
-
-        # inside the CZI metadata_tools colors are defined as ARGB hexstring
-        rgb = "#" + metadata.channelinfo.colors[ch][3:]
-        ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
-
-        # guess an appropriate scaling from the display setting embedded in the CZI
-        try:
-            lower = np.round(
-                metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch],
-                0,
+        sample_data.append(
+            (
+                chl.sub_array,
+                {
+                    "name": chl.name,
+                    "scale": chl.scale,
+                    "colormap": chl.colormap,
+                    "blending": "additive",
+                    "opacity": 0.85,
+                },
+                "image",
             )
-            higher = np.round(
-                metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch],
-                0,
-            )
-        except IndexError as e:
-            logger.warning(
-                "Calculation from display setting from CZI failed. Use 0-Max instead."
-            )
-            lower = 0
-            higher = metadata.maxvalue[ch]
-
-        # simple validity check
-        if lower >= higher:
-            logger.warning("Fancy Display Scaling detected. Use Defaults")
-            lower = 0
-            higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
-
-        # add the channel to the viewer
-        viewer.add_image(
-            sub_array,
-            name=chname,
-            colormap=ncmap,
-            blending="additive",
-            scale=scalefactors,
-            gamma=0.85,
         )
 
-        # set the axis labels based on the dimensions
-        viewer.dims.axis_labels = sub_array.dims
+    # add the list of layers to th viewer
+    return sample_data
+    # return layers
+
+
+# def _add_czi_data(
+#     path: str,
+#     zoom: float = 1.0,
+#     use_dask: bool = False,
+#     chunk_zyx: bool = False,
+#     use_xarray: bool = True,
+# ):
+
+#     sample_data = []
+
+#     # return an array with dimension order STCZYX(A)
+#     array6d, metadata = read_tools.read_6darray(
+#         path,
+#         use_dask=use_dask,
+#         chunk_zyx=chunk_zyx,
+#         zoom=zoom,
+#         use_xarray=use_xarray,
+#     )
+
+#     # get the channel layers
+#     channel_layers = process_channels(array6d, metadata)
+
+#     for chl in channel_layers:
+
+#         sample_data.append(
+#             (
+#                 chl.sub_array,
+#                 {
+#                     "name": chl.name,
+#                     "scale": chl.scale,
+#                     "colormap": chl.colormap,
+#                     "blending": "additive",
+#                     "opacity": 0.85,
+#                 },
+#                 "image",
+#             )
+#         )
+
+#     return sample_data
