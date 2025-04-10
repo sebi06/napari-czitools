@@ -56,9 +56,6 @@ contributions:
     - command: napari-czitools.wellplate_data
       display_name: WellPlate 6D dataset
       key: unique_id.1
-    - command: napari-czitools.zstack_data
-      display_name: Z-Stack 3D dataset
-      key: unique_id.2
 
     - command: napari-czitools.zstack_data
       display_name: Z-Stack dataset
