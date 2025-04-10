@@ -1,7 +1,9 @@
-from typing import Literal, Optional
+from dataclasses import Field, dataclass, field, fields
+from typing import List, Literal, Optional
 
 import napari
 import numpy as np
+import xarray as xr
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.read_tools import read_tools
 from czitools.utils import logging_tools
@@ -12,6 +14,29 @@ from ._metadata_widget import MdTableWidget, MdTreeWidget
 MetaDataDisplay = Optional[Literal["tree", "table"]]
 
 logger = logging_tools.set_logging()
+
+
+@dataclass
+class ChannelLayer:
+    """
+    Represents a channel layer for visualization in Napari.
+    Attributes:
+        sub_array (xr.DataArray): The data array representing the channel's image data.
+        metadata (czimd.CziMetadata): Metadata associated with the channel layer.
+        name (str): The name of the channel layer.
+        scale (list[float]): A list of scaling factors for the layer in each dimension.
+        colormap (Colormap): The colormap used for visualizing the channel.
+        blending (str): The blending mode for the layer. Defaults to "additive".
+        opacity (float): The opacity level of the layer. Defaults to 0.85.
+    """
+
+    sub_array: xr.DataArray
+    metadata: czimd.CziMetadata
+    name: str
+    scale: list[float]
+    colormap: Colormap
+    blending: str = "additive"
+    opacity: float = 0.85
 
 
 class CZIDataLoader:
@@ -89,64 +114,137 @@ class CZIDataLoader:
                 mdtable, name="MetadataTable", area="right"
             )
 
-        # loop over all channels
-        for ch in range(array6d.sizes["C"]):
+        # get the channel layers
+        channel_layers = process_channels(array6d, metadata)
 
-            # extract channel subarray
-            sub_array = array6d.sel(C=ch)
+        # # loop over all channels
+        # for ch in range(array6d.sizes["C"]):
 
-            # get the scaling factors for that channel and adapt Z-axis scaling
-            scalefactors: list[float] = [1.0] * len(sub_array.shape)
-            scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
-                "zx_sf"
-            ]
+        #     # extract channel subarray
+        #     sub_array = array6d.sel(C=ch)
 
-            # remove the last scaling factor in case of an RGB image
-            if "A" in sub_array.dims:
-                # remove the A axis from the scaling factors
-                scalefactors.pop(sub_array.get_axis_num("A"))
+        #     # get the scaling factors for that channel and adapt Z-axis scaling
+        #     scalefactors: list[float] = [1.0] * len(sub_array.shape)
+        #     scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
+        #         "zx_sf"
+        #     ]
 
-            # get colors and channel name
-            chname: str = metadata.channelinfo.names[ch]
+        #     # remove the last scaling factor in case of an RGB image
+        #     if "A" in sub_array.dims:
+        #         # remove the A axis from the scaling factors
+        #         scalefactors.pop(sub_array.get_axis_num("A"))
 
-            # inside the CZI metadata_tools colors are defined as ARGB hexstring
-            rgb: str = "#" + metadata.channelinfo.colors[ch][3:]
-            ncmap: Colormap = Colormap(["#000000", rgb], name="cm_" + chname)
+        #     # get colors and channel name
+        #     chname: str = metadata.channelinfo.names[ch]
 
-            # guess an appropriate scaling from the display setting embedded in the CZI
-            try:
-                lower: float = np.round(
-                    metadata.channelinfo.clims[ch][0]
-                    * metadata.maxvalue_list[ch],
-                    0,
-                )
-                higher: float = np.round(
-                    metadata.channelinfo.clims[ch][1]
-                    * metadata.maxvalue_list[ch],
-                    0,
-                )
-            except IndexError as e:
-                logger.warning(
-                    "Calculation from display setting from CZI failed. Use 0-Max instead."
-                )
-                lower = 0
-                higher = metadata.maxvalue[ch]
+        #     # inside the CZI metadata_tools colors are defined as ARGB hexstring
+        #     rgb: str = "#" + metadata.channelinfo.colors[ch][3:]
+        #     ncmap: Colormap = Colormap(["#000000", rgb], name="cm_" + chname)
 
-            # simple validity check
-            if lower >= higher:
-                logger.warning("Fancy Display Scaling detected. Use Defaults")
-                lower = 0
-                higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
+        #     # guess an appropriate scaling from the display setting embedded in the CZI
+        #     try:
+        #         lower: float = np.round(
+        #             metadata.channelinfo.clims[ch][0]
+        #             * metadata.maxvalue_list[ch],
+        #             0,
+        #         )
+        #         higher: float = np.round(
+        #             metadata.channelinfo.clims[ch][1]
+        #             * metadata.maxvalue_list[ch],
+        #             0,
+        #         )
+        #     except IndexError as e:
+        #         logger.warning(
+        #             "Calculation from display setting from CZI failed. Use 0-Max instead."
+        #         )
+        #         lower = 0
+        #         higher = metadata.maxvalue[ch]
+
+        #     # simple validity check
+        #     if lower >= higher:
+        #         logger.warning("Fancy Display Scaling detected. Use Defaults")
+        #         lower = 0
+        #         higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
+
+        #     # add the channel to the viewer
+
+        for chl in channel_layers:
 
             # add the channel to the viewer
             viewer.add_image(
-                sub_array,
-                name=chname,
-                colormap=ncmap,
-                blending="additive",
-                scale=scalefactors,
+                chl.sub_array,
+                name=chl.name,
+                colormap=chl.colormap,
+                blending=chl.blending,
+                scale=chl.scale if chl.scale is not None else None,
                 gamma=0.85,
             )
 
             # set the axis labels based on the dimensions
-            viewer.dims.axis_labels = sub_array.dims
+            viewer.dims.axis_labels = chl.sub_array.dims
+
+
+def process_channels(array6d, metadata) -> List[ChannelLayer]:
+
+    channel_layers = []
+
+    # loop over all channels
+    for ch in range(array6d.sizes["C"]):
+
+        # extract channel subarray
+        sub_array = array6d.sel(C=ch)
+
+        # get the scaling factors for that channel and adapt Z-axis scaling
+        scalefactors = [1.0] * len(sub_array.shape)
+        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
+            "zx_sf"
+        ]
+
+        # remove the last scaling factor in case of an RGB image
+        if "A" in sub_array.dims:
+            # remove the A axis from the scaling factors
+            scalefactors.pop(sub_array.get_axis_num("A"))
+
+        # get colors and channel name
+        chname = metadata.channelinfo.names[ch]
+
+        # inside the CZI metadata_tools colors are defined as ARGB hexstring
+        rgb = "#" + metadata.channelinfo.colors[ch][3:]
+        ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
+
+        # guess an appropriate scaling from the display setting embedded in the CZI
+        try:
+            lower = np.round(
+                metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch],
+                0,
+            )
+            higher = np.round(
+                metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch],
+                0,
+            )
+        except IndexError as e:
+            logger.warning(
+                "Calculation from display setting from CZI failed. Use 0-Max instead."
+            )
+            lower = 0
+            higher = metadata.maxvalue[ch]
+
+        # simple validity check
+        if lower >= higher:
+            logger.warning("Fancy Display Scaling detected. Use Defaults")
+            lower = 0
+            higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
+
+        chl = ChannelLayer(
+            sub_array=sub_array,
+            metadata=metadata,
+            name=chname,
+            scale=scalefactors,
+            colormap=ncmap,
+            blending="additive",
+            opacity=0.85,
+        )
+
+        channel_layers.append(chl)
+
+    return channel_layers

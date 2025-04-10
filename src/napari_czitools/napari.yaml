@@ -11,7 +11,7 @@ categories: ["IO"]
 contributions:
   commands:
 
-    - id: napari-czitools.get_reader
+    - id: napari-czitools.get_reader_adv
       python_name: napari_czitools._reader:napari_get_reader
       title: Open *.czi image files with CziTools
 
@@ -44,7 +44,7 @@ contributions:
       title: Make example QWidget
 
   readers:
-    - command: napari-czitools.get_reader
+    - command: napari-czitools.get_reader_adv
       accepts_directories: false
       filename_patterns: ['*.czi']
 
