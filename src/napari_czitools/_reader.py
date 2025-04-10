@@ -81,15 +81,6 @@ def reader_function(
     path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True
 ):
 
-    # # call the function to add the data to the viewer
-    # layers = _add_czi_data(
-    #     path,
-    #     zoom=zoom,
-    #     use_dask=use_dask,
-    #     chunk_zyx=chunk_zyx,
-    #     use_xarray=use_xarray,
-    # )
-
     sample_data = []
 
     # return an array with dimension order STCZYX(A)
@@ -123,44 +114,3 @@ def reader_function(
     # add the list of layers to th viewer
     return sample_data
     # return layers
-
-
-# def _add_czi_data(
-#     path: str,
-#     zoom: float = 1.0,
-#     use_dask: bool = False,
-#     chunk_zyx: bool = False,
-#     use_xarray: bool = True,
-# ):
-
-#     sample_data = []
-
-#     # return an array with dimension order STCZYX(A)
-#     array6d, metadata = read_tools.read_6darray(
-#         path,
-#         use_dask=use_dask,
-#         chunk_zyx=chunk_zyx,
-#         zoom=zoom,
-#         use_xarray=use_xarray,
-#     )
-
-#     # get the channel layers
-#     channel_layers = process_channels(array6d, metadata)
-
-#     for chl in channel_layers:
-
-#         sample_data.append(
-#             (
-#                 chl.sub_array,
-#                 {
-#                     "name": chl.name,
-#                     "scale": chl.scale,
-#                     "colormap": chl.colormap,
-#                     "blending": "additive",
-#                     "opacity": 0.85,
-#                 },
-#                 "image",
-#             )
-#         )
-
-#     return sample_data
