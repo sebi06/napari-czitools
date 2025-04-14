@@ -79,6 +79,28 @@ class CZIDataLoader:
         self.show_metadata: MetaDataDisplay = show_metadata
 
     def add_to_viewer(self) -> None:
+        """
+        Adds image data and metadata to a napari viewer.
+        This method reads a 6D array from the specified file path, processes the data,
+        and adds it to a napari viewer. It also displays metadata in the viewer as either
+        a tree or a table, based on the user's preference.
+        Parameters:
+            None
+        Behavior:
+            - Retrieves the current napari viewer or creates a new one if none exists.
+            - Reads a 6D array and associated metadata from the file specified by `self.path`.
+            - Displays metadata in the viewer:
+                - As a tree if `self.show_metadata` is set to "tree".
+                - As a table if `self.show_metadata` is set to "table".
+            - Processes the 6D array into channel layers and adds them to the viewer as images.
+            - Sets axis labels for the viewer based on the dimensions of the image data.
+        Notes:
+            - The method uses external tools for reading the 6D array and metadata,
+              as well as for processing the channel layers.
+            - Metadata widgets are added to the viewer's dock area on the right.
+            - Image layers are added with specific properties such as colormap, blending,
+              scale, and gamma correction.
+        """
         # get napari viewer from current process
         viewer: Optional[napari.Viewer] = napari.current_viewer()
         if viewer is None:
@@ -134,6 +156,26 @@ class CZIDataLoader:
 
 
 def process_channels(array6d, metadata) -> list[ChannelLayer]:
+    """
+    Processes a 6D array and metadata to generate a list of ChannelLayer objects.
+    This function extracts individual channels from a 6D array, applies scaling factors,
+    assigns colors and names based on metadata, and creates ChannelLayer objects for each channel.
+    Args:
+        array6d: An xarray DataArray representing the 6D image data. The dimensions are expected
+                 to include "C" (channels) and optionally "Z" (depth) and "A" (alpha for RGB).
+        metadata: An object containing metadata about the image, including scaling factors,
+                  channel names, colors, and display settings.
+    Returns:
+        list[ChannelLayer]: A list of ChannelLayer objects, each representing a processed channel
+                            with associated metadata, scaling, colormap, and display settings.
+    Raises:
+        IndexError: If the metadata does not contain valid display settings for the channels.
+    Notes:
+        - The function adapts Z-axis scaling based on the metadata's scale ratio.
+        - If the image contains an alpha channel ("A"), it is excluded from the scaling factors.
+        - Colors are extracted from the metadata as ARGB hex strings and converted to RGB.
+        - Display settings are guessed from metadata, with fallback defaults if unavailable or invalid.
+    """
 
     channel_layers = []
 
