@@ -113,4 +113,3 @@ def reader_function(
 
     # add the list of layers to th viewer
     return sample_data
-    # return layers
