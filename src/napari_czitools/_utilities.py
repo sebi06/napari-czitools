@@ -11,22 +11,24 @@ TESTDATA_BASE_PATH = "src/napari_czitools/sample_data"
 
 def check_filepath(filepath: str) -> str | None:
     """
-    Check if the given file exists locally or in the GitHub repository.
+    Verify the existence of a file locally or in the GitHub repository.
+
     This function first checks if the specified file exists in the local
-    filesystem. If the file is found locally, it logs an informational
-    message and returns the local file path. If the file does not exist
-    locally, it attempts to construct a URL to the file in a GitHub
-    repository and checks if the URL is valid. If the URL is valid, it
-    returns the constructed URL. Otherwise, it logs an error message
-    and returns None.
+    filesystem under the predefined `TESTDATA_BASE_PATH`. If the file is
+    found locally, it logs an informational message and returns the local
+    file path. If the file does not exist locally, it constructs a URL
+    pointing to the file in the GitHub repository and validates the URL.
+    If the URL is valid, it returns the constructed URL. Otherwise, it logs
+    an error message and returns None.
+
     Args:
-        filepath (str): The path to the file to check.
+        filepath (str): The relative path to the file to check.
+
     Returns:
-        str or None: The local file path if the file exists locally, the
+        str | None: The local file path if the file exists locally, the
         GitHub URL if the file exists in the repository, or None if the
         file cannot be found.
     """
-
     filepath_to_read = os.path.join(TESTDATA_BASE_PATH, filepath)
 
     if os.path.exists(filepath_to_read):
@@ -45,5 +47,5 @@ def check_filepath(filepath: str) -> str | None:
         if validators.url(filepath_to_read):
             return filepath_to_read  # noqa: G004
         else:
-            logger.error(f"Invalid link: {filepath_to_read  }")  # noqa: G004
+            logger.error(f"Invalid link: {filepath_to_read}")  # noqa: G004
             return None
