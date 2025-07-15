@@ -28,6 +28,7 @@ dependencies = [
     "magicgui",
     "qtpy",
     "scikit-image",
+    "czitools"
 ]
 
 [project.optional-dependencies]

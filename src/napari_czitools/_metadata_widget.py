@@ -1,5 +1,4 @@
 import warnings
-from typing import Dict, List, Optional, Tuple
 
 from czitools.utils.datatreewiget import DataTreeWidget
 from PyQt5 import QtWidgets
@@ -39,7 +38,7 @@ class MdTableWidget(QWidget):
         header = self.mdtable.horizontalHeader()
         header.setDefaultAlignment(Qt.AlignLeft)
 
-    def update_metadata(self, md_dict: Dict) -> None:
+    def update_metadata(self, md_dict: dict) -> None:
         """
         Update the table with the metadata from the dictionary.
         This method updates the table widget (`self.mdtable`) with the metadata
