@@ -116,25 +116,16 @@ class CZIDataLoader:
         )
 
         if self.show_metadata == "tree":
-            md_dict = czimd.create_md_dict_nested(
-                metadata, sort=True, remove_none=True
-            )
+            md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
             mdtree = MdTreeWidget(data=md_dict, expandlevel=0)
-            viewer.window.add_dock_widget(
-                mdtree, name="MetadataTree", area="right"
-            )
+            viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
 
-            # add QTableWidget DataTreeWidget to Napari viewer to show the metadata_tools
         if self.show_metadata == "table":
-            md_dict = czimd.create_md_dict_red(
-                metadata, sort=True, remove_none=True
-            )
+            md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
             mdtable.update_style()
-            viewer.window.add_dock_widget(
-                mdtable, name="MetadataTable", area="right"
-            )
+            viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
 
         # get the channel layers
         channel_layers = process_channels(array6d, metadata)
@@ -187,9 +178,7 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
         # get the scaling factors for that channel and adapt Z-axis scaling
         scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
-            "zx_sf"
-        ]
+        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio["zx_sf"]
 
         # remove the last scaling factor in case of an RGB image
         if "A" in sub_array.dims:
@@ -214,9 +203,7 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
                 0,
             )
         except IndexError as e:
-            logger.warning(
-                "Calculation from display setting from CZI failed. Use 0-Max instead."
-            )
+            logger.warning("Calculation from display setting from CZI failed. Use 0-Max instead.")
             lower = 0
             higher = metadata.maxvalue[ch]
 

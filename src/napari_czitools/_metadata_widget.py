@@ -31,6 +31,10 @@ class MdTableWidget(QWidget):
     def __init__(self) -> None:
         super(QWidget, self).__init__()
 
+        self._explicitly_hidden = False
+        self.label = "Metadata Table"
+        self.tooltip = "Table displaying CZI metadata"
+
         self.layout = QVBoxLayout(self)
         self.mdtable = QTableWidget()
         self.layout.addWidget(self.mdtable)
@@ -110,6 +114,9 @@ class MdTreeWidget(QWidget):
 
     def __init__(self, data=None, expandlevel=0) -> None:
         super(QWidget, self).__init__()
+
+        self._explicitly_hidden = False
+        self.label = "Metadata Tree"
 
         self.layout = QVBoxLayout(self)
         self.mdtree = DataTreeWidget(data=data)
