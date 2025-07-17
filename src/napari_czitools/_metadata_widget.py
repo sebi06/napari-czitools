@@ -1,15 +1,16 @@
 import warnings
 
-from czitools.utils.datatreewiget import DataTreeWidget
-from PyQt5 import QtWidgets
-from PyQt5.QtCore import Qt
-from PyQt5.QtGui import QFont
-from PyQt5.QtWidgets import (
+from qtpy import QtWidgets
+from qtpy.QtCore import Qt
+from qtpy.QtGui import QFont
+from qtpy.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QVBoxLayout,
     QWidget,
 )
+
+from ._datatreewidget import DataTreeWidget
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
