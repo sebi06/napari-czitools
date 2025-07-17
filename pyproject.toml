@@ -24,7 +24,7 @@ classifiers = [
 ]
 requires-python = ">=3.10, <3.13"
 dependencies = [
-    "numpy<2",
+    "numpy",
     "magicgui",
     "qtpy",
     "scikit-image",
