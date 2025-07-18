@@ -27,9 +27,9 @@ contributions:
       python_name: napari_czitools._sample_data:zstack_data
       title: Load ZStack Data
     
-    - id: napari-czitools.make_qwidget
-      python_name: napari_czitools._widget:ExampleQWidget
-      title: Make example QWidget
+    - id: napari-czitools.make_czireader_widget
+      python_name: napari_czitools._widget:CziReaderWidget
+      title: Create CZI Reader Widget
 
   readers:
     - command: napari-czitools.get_reader_adv
@@ -51,5 +51,5 @@ contributions:
 
   widgets:
 
-    - command: napari-czitools.make_qwidget
-      display_name: Example QWidget
+    - command: napari-czitools.make_czireader_widget
+      display_name: CZI Reader Widget

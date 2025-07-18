@@ -71,7 +71,7 @@ class MdTableWidget(QWidget):
         # fit columns to content
         self.mdtable.resizeColumnsToContents()
 
-    def update_style(self) -> None:
+    def update_style(self, font_bold: bool = True, font_size: int = 10) -> None:
         """
         Updates the style of the table headers in the `mdtable` widget.
         This method sets the font size, type, and boldness for the table headers.
@@ -84,8 +84,8 @@ class MdTableWidget(QWidget):
 
         # define font size and type
         fnt = QFont()
-        fnt.setPointSize(11)
-        fnt.setBold(True)
+        fnt.setPointSize(font_size)
+        fnt.setBold(font_bold)
         fnt.setFamily("Arial")
 
         # update both header items
@@ -125,3 +125,7 @@ class MdTreeWidget(QWidget):
         self.mdtree.collapseAll()
         self.mdtree.expandToDepth(expandlevel)
         self.layout.addWidget(self.mdtree)
+
+    def setData(self, data, expandlevel: int = 0, hideRoot: bool = True) -> None:
+        self.mdtree.setData(data, hideRoot=hideRoot)
+        self.mdtree.expandToDepth(expandlevel)
