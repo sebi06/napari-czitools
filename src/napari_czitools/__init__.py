@@ -6,14 +6,15 @@ except ImportError:
 from ._reader import napari_get_reader
 
 # from ._sample_data import make_sample_data
-from ._sample_data import celldivision_data, wellplate_data
+from ._sample_data import celldivision_data, wellplate_data, zstack_data
 from ._widget import (
-    ExampleQWidget,
+    CziReaderWidget,
 )
 
 __all__ = (
     "napari_get_reader",
     "celldivision_data",
     "wellplate_data",
-    "ExampleQWidget",
+    "zstack_data",
+    "CziReaderWidget",
 )

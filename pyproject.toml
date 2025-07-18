@@ -27,6 +27,7 @@ dependencies = [
     "numpy",
     "magicgui",
     "qtpy",
+    "superqt",
     "scikit-image",
     "czitools"
 ]
