@@ -11,10 +11,8 @@ from typing import TYPE_CHECKING
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.metadata_tools.czi_metadata import CziMetadata
 from magicgui.types import FileDialogMode
-from magicgui.widgets import ComboBox, FileEdit, PushButton, RangeSlider
-from qtpy.QtWidgets import QHBoxLayout, QLabel, QVBoxLayout, QWidget, QSizePolicy, QSpacerItem, QSplitter
-
-# from superqt import QSearchableTreeWidget
+from magicgui.widgets import ComboBox, FileEdit, PushButton
+from qtpy.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 
 from ._metadata_widget import MdTableWidget, MdTreeWidget
 from ._range_widget import RangeSliderWidget
@@ -66,38 +64,59 @@ class CziReaderWidget(QWidget):
         )
         self.load_pixeldata.native.setStyleSheet("border: 1px solid blue;")
 
-        # scene slider
-        self.scene_slider = RangeSliderWidget(
-            dimension_label="Scene", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        )
+        # # scene slider
+        # self.scene_slider = RangeSliderWidget(
+        #     dimension_label="Scene", min_value=0, max_value=0, readout=True, visible=True, enabled=False
+        # )
 
-        # time slider
-        self.time_slider = RangeSliderWidget(
-            dimension_label="Time", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        )
+        # # time slider
+        # self.time_slider = RangeSliderWidget(
+        #     dimension_label="Time", min_value=0, max_value=0, readout=True, visible=True, enabled=False
+        # )
 
-        # channel slider
-        self.channel_slider = RangeSliderWidget(
-            dimension_label="Channel", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        )
+        # # channel slider
+        # self.channel_slider = RangeSliderWidget(
+        #     dimension_label="Channel", min_value=0, max_value=0, readout=True, visible=True, enabled=False
+        # )
 
-        # z slider
-        self.z_slider = RangeSliderWidget(
-            dimension_label="Z-Plane", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        )
+        # # z slider
+        # self.z_slider = RangeSliderWidget(
+        #     dimension_label="Z-Plane", min_value=0, max_value=0, readout=True, visible=True, enabled=False
+        # )
+
+        # Define Dimension slider configurations
+        slider_configs = [
+            ("Scene", "scene_slider"),
+            ("Time", "time_slider"),
+            ("Channel", "channel_slider"),
+            ("Z-Plane", "z_slider"),
+        ]
+
+        # Create sliders dynamically
+        for label, attr_name in slider_configs:
+            slider = RangeSliderWidget(
+                dimension_label=label, min_value=0, max_value=0, readout=True, visible=True, enabled=False
+            )
+            setattr(self, attr_name, slider)
 
         # Add all widgets to the main layout
         self.main_layout.addLayout(file_layout)  # Add FileDialog section
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
 
         self.mdtable = MdTableWidget()
+        self.mdtable.update_metadata({})
+        self.mdtable.update_style(font_bold=False, font_size=6)
+
+        # self.mdtable.setStyleSheet("border: 1px solid red;")
+        # self.mdtable.setMinimumHeight(300)  # Set minimum height for the table
+
         self.mdtree = MdTreeWidget()
-        self.mdtable.setStyleSheet("border: 1px solid red;")
-        self.mdtable.setMinimumHeight(300)  # Set minimum height for the table
-        self.mdtree.setStyleSheet("border: 1px solid red;")
-        self.mdtree.setMinimumHeight(300)  # Set minimum height for the table
-        self.mdtree.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        self.mdtable.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        # self.mdtree.setStyleSheet("border: 1px solid red;")
+        # self.mdtree.setMinimumHeight(300)  # Set minimum height for the table
+        # self.mdtree.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        # self.mdtable.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
+        # self.mdtree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        # self.mdtable.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
 
         self.current_md_widget = self.mdtable
         self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
@@ -128,7 +147,7 @@ class CziReaderWidget(QWidget):
         self.mdtree.setData(md_dict, expandlevel=0, hideRoot=True)
 
         self.mdtable.update_metadata(md_dict)
-        self.mdtable.update_style(font_bold=False, font_size=6)
+        # self.mdtable.update_style(font_bold=False, font_size=6)
 
         # update sliders based on metadata
         if self.metadata.image.SizeS is not None:

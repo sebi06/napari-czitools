@@ -73,13 +73,15 @@ class MdTableWidget(QWidget):
 
     def update_style(self, font_bold: bool = True, font_size: int = 10) -> None:
         """
-        Updates the style of the table headers in the `mdtable` widget.
-        This method sets the font size, type, and boldness for the table headers.
-        It also sets the text for the headers to "Parameter" and "Value".
-        Parameters:
-        None
-        Returns:
-        None
+        This method customizes the appearance of the table headers by setting
+        the font size, boldness, and font family. It also updates the header
+        text to "Parameter" and "Value".
+        ----------
+        font_bold : bool, optional
+            Whether the font should be bold. Defaults to True.
+        font_size : int, optional
+            The size of the font. Defaults to 10.
+        -------
         """
 
         # define font size and type
@@ -103,13 +105,21 @@ class MdTableWidget(QWidget):
 
 class MdTreeWidget(QWidget):
     """
-    A custom QWidget that contains a DataTreeWidget for displaying hierarchical data.
+    A widget for displaying metadata in a tree structure.
     Attributes:
-        layout (QVBoxLayout): The main layout of the widget.
-        mdtree (DataTreeWidget): The tree widget used to display the data.
+        label (str): The label for the widget, default is "Metadata Tree".
+        layout (QVBoxLayout): The layout manager for the widget.
+        mdtree (DataTreeWidget): The tree widget used to display metadata.
     Args:
-        data (optional): The data to be displayed in the tree widget. Defaults to None.
-        expandlevel (int, optional): The level to which the tree should be expanded initially. Defaults to 0.
+        data (optional): The metadata to be displayed in the tree. Defaults to None.
+        expandlevel (int, optional): The initial depth to which the tree should be expanded. Defaults to 0.
+    Methods:
+        setData(data, expandlevel=0, hideRoot=True):
+            Updates the metadata displayed in the tree widget.
+            Args:
+                data: The new metadata to be displayed.
+                expandlevel (int, optional): The depth to which the tree should be expanded. Defaults to 0.
+                hideRoot (bool, optional): Whether to hide the root node of the tree. Defaults to True.
     """
 
     def __init__(self, data=None, expandlevel=0) -> None:
