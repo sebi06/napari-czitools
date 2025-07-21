@@ -1,4 +1,5 @@
 import warnings
+from enum import Enum
 
 from qtpy import QtWidgets
 from qtpy.QtCore import Qt
@@ -13,6 +14,12 @@ from qtpy.QtWidgets import (
 from ._datatreewidget import DataTreeWidget
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
+
+
+class MetadataDisplayMode(Enum):
+    NONE = "None"
+    TREE = "Tree"
+    TABLE = "Table"
 
 
 class MdTableWidget(QWidget):

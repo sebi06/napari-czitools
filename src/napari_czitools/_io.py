@@ -9,9 +9,9 @@ from czitools.read_tools import read_tools
 from czitools.utils import logging_tools
 from napari.utils.colormaps import Colormap
 
-from ._metadata_widget import MdTableWidget, MdTreeWidget
+from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
 
-MetaDataDisplay = Optional[Literal["tree", "table"]]
+# MetaDataDisplay = Optional[Literal["tree", "table"]]
 
 logger = logging_tools.set_logging()
 
@@ -54,6 +54,9 @@ class CZIDataLoader:
         Whether to chunk the data along the ZYX axes when using Dask. Default is False.
     use_xarray : bool, optional
         Whether to use xarray for handling the image data. Default is True.
+    planes : dict, optional
+        A dictionary specifying which planes to read from the CZI file. Default is None, which
+        means all planes will be read.
     show_metadata : bool, optional
         Whether to display metadata information. Default is False.
     Methods
@@ -69,14 +72,16 @@ class CZIDataLoader:
         use_dask: bool = False,
         chunk_zyx: bool = False,
         use_xarray: bool = True,
-        show_metadata: MetaDataDisplay = "table",
+        planes: dict = None,
+        show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
     ) -> None:
         self.path: str = path
         self.zoom: float = zoom
         self.use_dask: bool = use_dask
         self.chunk_zyx: bool = chunk_zyx
         self.use_xarray: bool = use_xarray
-        self.show_metadata: MetaDataDisplay = show_metadata
+        self.planes: dict = planes if planes is not None else {}
+        self.show_metadata: MetadataDisplayMode = show_metadata
 
     def add_to_viewer(self) -> None:
         """
@@ -113,19 +118,28 @@ class CZIDataLoader:
             chunk_zyx=self.chunk_zyx,
             zoom=self.zoom,
             use_xarray=self.use_xarray,
+            planes=self.planes,
         )
 
-        if self.show_metadata == "tree":
+        # logger.info(f"Array shape: {array6d.shape}")
+        # logger.info(f"Planes: {self.planes}")
+
+        if self.show_metadata == MetadataDisplayMode.TREE:
+            logger.info("Creating Metadata Tree")
             md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
             mdtree = MdTreeWidget(data=md_dict, expandlevel=0)
             viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
 
-        if self.show_metadata == "table":
+        if self.show_metadata == MetadataDisplayMode.TABLE:
+            logger.info("Creating Metadata Table")
             md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
             mdtable.update_style()
             viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
+
+        if self.show_metadata == MetadataDisplayMode.NONE:
+            logger.info("No Metadata Display")
 
         # get the channel layers
         channel_layers = process_channels(array6d, metadata)
