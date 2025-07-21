@@ -71,7 +71,7 @@ class RangeSliderWidget:
             self.min_slider.value = max_val
 
         # Update label
-        self.range_label.value = f"Num Slices: {self.max_slider.value - self.min_slider.value + 1}"
+        self.range_label.value = f"{self.dimension_label} Slices: {max_val - min_val + 1}"
 
     @property
     def native(self):

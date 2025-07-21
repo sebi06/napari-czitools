@@ -10,12 +10,16 @@ from typing import TYPE_CHECKING
 
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.metadata_tools.czi_metadata import CziMetadata
+from czitools.utils import logging_tools
 from magicgui.types import FileDialogMode
 from magicgui.widgets import ComboBox, FileEdit, PushButton
 from qtpy.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
 
-from ._metadata_widget import MdTableWidget, MdTreeWidget
+from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
 from ._range_widget import RangeSliderWidget
+from ._reader import reader_function_adv
+
+logger = logging_tools.set_logging()
 
 if TYPE_CHECKING:
     import napari
@@ -63,26 +67,7 @@ class CziReaderWidget(QWidget):
             enabled=False,
         )
         self.load_pixeldata.native.setStyleSheet("border: 1px solid blue;")
-
-        # # scene slider
-        # self.scene_slider = RangeSliderWidget(
-        #     dimension_label="Scene", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        # )
-
-        # # time slider
-        # self.time_slider = RangeSliderWidget(
-        #     dimension_label="Time", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        # )
-
-        # # channel slider
-        # self.channel_slider = RangeSliderWidget(
-        #     dimension_label="Channel", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        # )
-
-        # # z slider
-        # self.z_slider = RangeSliderWidget(
-        #     dimension_label="Z-Plane", min_value=0, max_value=0, readout=True, visible=True, enabled=False
-        # )
+        self.load_pixeldata.native.clicked.connect(self._loadbutton_pressed)
 
         # Define Dimension slider configurations
         slider_configs = [
@@ -104,19 +89,14 @@ class CziReaderWidget(QWidget):
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
 
         self.mdtable = MdTableWidget()
+        self.mdtable.setStyleSheet("border: 1px solid red;")
+        self.mdtable.setMinimumHeight(300)  # Set minimum height for the table
         self.mdtable.update_metadata({})
         self.mdtable.update_style(font_bold=False, font_size=6)
 
-        # self.mdtable.setStyleSheet("border: 1px solid red;")
-        # self.mdtable.setMinimumHeight(300)  # Set minimum height for the table
-
         self.mdtree = MdTreeWidget()
-        # self.mdtree.setStyleSheet("border: 1px solid red;")
-        # self.mdtree.setMinimumHeight(300)  # Set minimum height for the table
-        # self.mdtree.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        # self.mdtable.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Fixed)
-        # self.mdtree.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
-        # self.mdtable.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)
+        self.mdtree.setStyleSheet("border: 1px solid red;")
+        self.mdtree.setMinimumHeight(300)  # Set minimum height for the table
 
         self.current_md_widget = self.mdtable
         self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
@@ -137,56 +117,42 @@ class CziReaderWidget(QWidget):
     def _file_changed(self):
         """Callback for when the file edit changes."""
         filepath = self.filename_edit.value
-        print(f"File changed to: {filepath}")
+        logger.info("File changed to: %(filepath)s", extra={"filepath": filepath})
         # Here you can add logic to handle the file change, e.g., load data
 
         # read the metadata from the file
         self.metadata = CziMetadata(filepath)
 
-        md_dict = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
-        self.mdtree.setData(md_dict, expandlevel=0, hideRoot=True)
+        # create a nested dictionary for the tree and a reduced dictionary for the table
+        md_dict_tree = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
+        # drop certain entries
+        md_dict_tree.pop("bbox", None)
+        self.mdtree.setData(md_dict_tree, expandlevel=0, hideRoot=True)
 
-        self.mdtable.update_metadata(md_dict)
-        # self.mdtable.update_style(font_bold=False, font_size=6)
+        md_dict_table = czimd.create_md_dict_red(self.metadata, sort=True, remove_none=True)
+        self.mdtable.update_metadata(md_dict_table)
 
-        # update sliders based on metadata
-        if self.metadata.image.SizeS is not None:
-            self.scene_slider.enabled = True
-            self.scene_slider.min_slider.enabled = True
-            self.scene_slider.max_slider.enabled = True
-            self.scene_slider.min_slider.min = 0
-            self.scene_slider.max_slider.max = self.metadata.image.SizeS - 1
-            self.scene_slider.min_slider.value = 0
-            self.scene_slider.max_slider.value = self.metadata.image.SizeS - 1
+        # Update sliders based on metadata
+        slider_mapping = {
+            "SizeS": self.scene_slider,
+            "SizeT": self.time_slider,
+            "SizeC": self.channel_slider,
+            "SizeZ": self.z_slider,
+        }
 
-        if self.metadata.image.SizeT is not None:
-            self.time_slider.enabled = True
-            self.time_slider.min_slider.enabled = True
-            self.time_slider.max_slider.enabled = True
-            self.time_slider.min_slider.min = 0
-            self.time_slider.min_slider.max = self.metadata.image.SizeT - 1
-            self.time_slider.max_slider.min = 0
-            self.time_slider.max_slider.max = self.metadata.image.SizeT - 1
-            self.time_slider.min_slider.value = 0
-            self.time_slider.max_slider.value = self.metadata.image.SizeT - 1
+        for size_attr, slider in slider_mapping.items():
+            size_value = getattr(self.metadata.image, size_attr, None)
+            if size_value is not None:
+                slider.enabled = True
+                slider.min_slider.enabled = True
+                slider.max_slider.enabled = True
+                slider.min_slider.min = 0
+                slider.max_slider.max = size_value - 1
+                slider.min_slider.value = 0
+                slider.max_slider.value = size_value - 1
 
-        if self.metadata.image.SizeC is not None:
-            self.channel_slider.enabled = True
-            self.channel_slider.max_slider.enabled = True
-            self.channel_slider.min_slider.enabled = True
-            self.channel_slider.min_slider.min = 0
-            self.channel_slider.max_slider.max = self.metadata.image.SizeC - 1
-            self.channel_slider.min_slider.value = 0
-            self.channel_slider.max_slider.value = self.metadata.image.SizeC - 1
-
-        if self.metadata.image.SizeZ is not None:
-            self.z_slider.enabled = True
-            self.z_slider.max_slider.enabled = True
-            self.z_slider.min_slider.enabled = True
-            self.z_slider.min_slider.min = 0
-            self.z_slider.max_slider.max = self.metadata.image.SizeZ - 1
-            self.z_slider.min_slider.value = 0
-            self.z_slider.max_slider.value = self.metadata.image.SizeZ - 1
+        # Enable the load pixel data button
+        self.load_pixeldata.enabled = True
 
         # Ensure layout updates dynamically
         self.main_layout.update()
@@ -205,3 +171,16 @@ class CziReaderWidget(QWidget):
         # Add the new widget to the layout
         self.main_layout.insertWidget(2, self.current_md_widget)
         self.current_md_widget.show()
+
+    def _loadbutton_pressed(self):
+
+        # get the require values to read the pixel data and show the layers
+        planes = {
+            "S": (self.scene_slider.min_slider.value, self.scene_slider.max_slider.value),
+            "T": (self.time_slider.min_slider.value, self.time_slider.max_slider.value),
+            "C": (self.channel_slider.min_slider.value, self.channel_slider.max_slider.value),
+            "Z": (self.z_slider.min_slider.value, self.z_slider.max_slider.value),
+        }
+
+        logger.info(f"Read Pixel data for file: {self.filename_edit.value} - Planes: {planes}")
+        reader_function_adv(self.filename_edit.value, zoom=1.0, planes=planes, show_metadata=MetadataDisplayMode.NONE)
