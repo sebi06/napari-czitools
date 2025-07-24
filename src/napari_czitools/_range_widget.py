@@ -59,6 +59,8 @@ class RangeSliderWidget:
 
         # Create container
         self.container = Container(widgets=[self.range_label, self.min_slider, self.max_slider])
+        self.container.visible = visible
+        self.container.enabled = enabled
 
     def update_range(self):
         min_val = self.min_slider.value

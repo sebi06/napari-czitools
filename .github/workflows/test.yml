@@ -1,0 +1,49 @@
+name: Tests
+
+on:
+  push:
+    branches: [ main, work_in_progress ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: [3.9, 3.10, 3.11]
+
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v4
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install system dependencies for GUI testing
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xfixes0
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e .
+        pip install pytest pytest-cov pytest-qt
+    
+    - name: Set Qt environment for headless testing
+      run: |
+        echo "QT_QPA_PLATFORM=offscreen" >> $GITHUB_ENV
+        echo "DISPLAY=:99" >> $GITHUB_ENV
+    
+    - name: Run tests with virtual display
+      run: |
+        xvfb-run -a --server-args="-screen 0 1024x768x24" pytest src/napari_czitools/_tests/ -v --cov=napari_czitools --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      with:
+        file: ./coverage.xml
+        flags: unittests
+        name: codecov-umbrella
