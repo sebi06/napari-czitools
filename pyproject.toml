@@ -1,7 +1,7 @@
 [project]
 name = "napari-czitools"
 dynamic = ["version"]
-description = "Plugin to read CZI image file and metadata"
+description = "Plugin to read CZI image files and their metadata"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
@@ -29,7 +29,7 @@ dependencies = [
     "qtpy",
     "superqt",
     "scikit-image",
-    "czitools"
+    "czitools>=0.10.0"
 ]
 
 [project.optional-dependencies]

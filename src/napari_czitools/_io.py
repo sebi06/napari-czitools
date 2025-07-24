@@ -111,6 +111,8 @@ class CZIDataLoader:
         if viewer is None:
             viewer = napari.Viewer()
 
+        logger.warning(f"Planes: {self.planes}")
+
         # return an array with dimension order STCZYX(A)
         array6d, metadata = read_tools.read_6darray(
             self.path,
