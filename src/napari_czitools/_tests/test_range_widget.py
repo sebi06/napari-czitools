@@ -1,12 +1,23 @@
+import os
+
 import pytest
-from magicgui.widgets import Label, Slider
 
 from napari_czitools._range_widget import RangeSliderWidget
+
+# Check if we're running in a headless environment (like GitHub Actions)
+HEADLESS = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
+
+# Skip GUI tests in headless environments unless xvfb is available
+pytestmark = pytest.mark.skipif(
+    HEADLESS and not os.environ.get("DISPLAY"), reason="GUI tests require display server (use xvfb-run in CI)"
+)
 
 
 @pytest.fixture
 def widget():
-    return RangeSliderWidget(dimension_label="Time", min_value=0, max_value=10, visible=True, enabled=True)
+    return RangeSliderWidget(
+        dimension_label="Time", min_value=0, max_value=10, readout=True, visible=True, enabled=True
+    )
 
 
 def test_initial_values(widget):
@@ -23,22 +34,23 @@ def test_update_range_min_exceeds_max(widget):
     widget.max_slider.value = 5
     widget.update_range()
     assert widget.max_slider.value == 8
-    assert widget.range_label.value == "Num Slices: 1"
+    assert widget.min_slider.value == 8
+    assert widget.range_label.value == "Time Slices: 1"
 
 
 def test_update_range_max_below_min(widget):
     widget.max_slider.value = 2
     widget.min_slider.value = 5
     widget.update_range()
-    assert widget.min_slider.value == 2
-    assert widget.range_label.value == "Num Slices: 1"
+    assert widget.min_slider.value == 5
+    assert widget.range_label.value == "Time Slices: 1"
 
 
 def test_update_range_valid_values(widget):
     widget.min_slider.value = 3
     widget.max_slider.value = 7
     widget.update_range()
-    assert widget.range_label.value == "Num Slices: 5"
+    assert widget.range_label.value == "Time Slices: 5"
 
 
 def test_visibility_and_enabled(widget):

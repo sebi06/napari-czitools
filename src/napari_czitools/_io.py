@@ -111,8 +111,6 @@ class CZIDataLoader:
         if viewer is None:
             viewer = napari.Viewer()
 
-        logger.warning(f"Planes: {self.planes}")
-
         # return an array with dimension order STCZYX(A)
         array6d, metadata = read_tools.read_6darray(
             self.path,
@@ -122,9 +120,6 @@ class CZIDataLoader:
             use_xarray=self.use_xarray,
             planes=self.planes,
         )
-
-        # logger.info(f"Array shape: {array6d.shape}")
-        # logger.info(f"Planes: {self.planes}")
 
         if self.show_metadata == MetadataDisplayMode.TREE:
             logger.info("Creating Metadata Tree")
