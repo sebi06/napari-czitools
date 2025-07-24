@@ -145,7 +145,7 @@ class CziReaderWidget(QWidget):
 
         for size_attr, slider in slider_mapping.items():
             size_value = getattr(self.metadata.image, size_attr, None)
-            print(f"Size attribute {size_attr} has value: {size_value}")
+            logger.info(f"Size attribute {size_attr} has value: {size_value}")
             if size_value is not None:
                 slider.enabled = True
                 slider.min_slider.enabled = True
