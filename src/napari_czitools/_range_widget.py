@@ -1,5 +1,6 @@
 from magicgui.widgets import Container, Label, Slider
-from qtpy.QtWidgets import QApplication
+
+# from qtpy.QtWidgets import QApplication
 
 
 class RangeSliderWidget:
@@ -30,7 +31,7 @@ class RangeSliderWidget:
         self.max_value = max_value
         self.readout = readout
         self.visible = visible
-        self.enabled = enabled
+        self._enabled = enabled  # Store as private attribute
 
         # Create widgets
         self.range_label = Label(value=f"{dimension_label} Slices: {max_value - min_value + 1}")
@@ -74,6 +75,19 @@ class RangeSliderWidget:
 
         # Update label
         self.range_label.value = f"{self.dimension_label} Slices: {max_val - min_val + 1}"
+
+    @property
+    def enabled(self):
+        """Get the enabled state of the widget."""
+        return self._enabled
+
+    @enabled.setter
+    def enabled(self, value: bool):
+        """Set the enabled state of the widget and update all components."""
+        self._enabled = value
+        self.container.enabled = value
+        self.min_slider.enabled = value
+        self.max_slider.enabled = value
 
     @property
     def native(self):

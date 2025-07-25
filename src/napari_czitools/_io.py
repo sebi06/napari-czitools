@@ -122,13 +122,13 @@ class CZIDataLoader:
         )
 
         if self.show_metadata == MetadataDisplayMode.TREE:
-            logger.info("Creating Metadata Tree")
+            # logger.info("Creating Metadata Tree")
             md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
             mdtree = MdTreeWidget(data=md_dict, expandlevel=0)
             viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
 
         if self.show_metadata == MetadataDisplayMode.TABLE:
-            logger.info("Creating Metadata Table")
+            # logger.info("Creating Metadata Table")
             md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
@@ -136,7 +136,8 @@ class CZIDataLoader:
             viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
 
         if self.show_metadata == MetadataDisplayMode.NONE:
-            logger.info("No Metadata Display")
+            # logger.info("No Metadata Display")
+            pass
 
         # get the channel layers
         channel_layers = process_channels(array6d, metadata)
