@@ -137,12 +137,60 @@ class MdTreeWidget(QWidget):
 
         self.layout = QVBoxLayout(self)
         self.mdtree = DataTreeWidget(data=data)
-        self.mdtree.setData(data, hideRoot=True)
+        # First set data with default expansion
+        self.mdtree.setData(data, expandlevel=0, hideRoot=True)
         self.mdtree.setAlternatingRowColors(False)
+        # Collapse everything first
         self.mdtree.collapseAll()
-        self.mdtree.expandToDepth(expandlevel)
+
+        # Expand only the "image" entry by one level
+        self._expand_specific_item("image", levels=1)
+
+        # Then expand according to our logic
+        if expandlevel > 0:
+            # With hideRoot=True, we need to expand one less level
+            self.mdtree.expandToDepth(expandlevel - 1)
+        # If expandlevel=0, everything stays collapsed except "image"
         self.layout.addWidget(self.mdtree)
 
     def setData(self, data, expandlevel: int = 0, hideRoot: bool = True) -> None:
-        self.mdtree.setData(data, hideRoot=hideRoot)
-        self.mdtree.expandToDepth(expandlevel)
+        # First set the data without any expansion (use expandlevel=0 but we'll override it)
+        self.mdtree.setData(data, expandlevel=0, hideRoot=hideRoot)
+        # Now collapse everything first
+        self.mdtree.collapseAll()
+
+        # Expand only the "image" entry by one level
+        self._expand_specific_item("image", levels=1)
+
+        # If expandlevel > 0, also expand other items according to the general logic
+        if expandlevel > 0:
+            # With hideRoot=True, we need to expand one less level
+            self.mdtree.expandToDepth(expandlevel - 1)
+
+    def _expand_specific_item(self, item_name: str, levels: int = 1):
+        """Expand a specific item in the tree by the specified number of levels."""
+        # Get the root item (invisible root)
+        root = self.mdtree.invisibleRootItem()
+
+        # Search for the item with the specified name
+        for i in range(root.childCount()):
+            child = root.child(i)
+            if child.text(0).lower() == item_name.lower():
+                # Expand this item
+                self.mdtree.expandItem(child)
+
+                # If levels > 1, expand children as well
+                if levels > 1:
+                    self._expand_children_recursive(child, levels - 1)
+                break
+
+    def _expand_children_recursive(self, item, levels: int):
+        """Recursively expand children of an item to the specified depth."""
+        if levels <= 0:
+            return
+
+        for i in range(item.childCount()):
+            child = item.child(i)
+            self.mdtree.expandItem(child)
+            if levels > 1:
+                self._expand_children_recursive(child, levels - 1)
