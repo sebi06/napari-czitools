@@ -1,5 +1,6 @@
 from czitools.read_tools import read_tools
 from czitools.utils import logging_tools
+from napari.types import LayerDataTuple
 
 from napari_czitools._metadata_widget import MetadataDisplayMode
 
@@ -90,7 +91,9 @@ def reader_function_adv(
 #
 # See also: https://forum.image.sc/t/file-open-vs-open-sample-using-my-own-napari-plugin/111123/8?u=sebi06
 #
-def reader_function(path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True, planes: dict = None):
+def reader_function(
+    path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True, planes: dict = None
+) -> list[LayerDataTuple]:
 
     sample_data = []
 

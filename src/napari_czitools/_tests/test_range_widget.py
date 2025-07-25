@@ -53,6 +53,29 @@ def test_update_range_valid_values(widget):
     assert widget.range_label.value == "Time Slices: 5"
 
 
+def test_enabled_property(widget):
+    """Test that the enabled property properly controls all components."""
+    # Test initial enabled state
+    assert widget.enabled is True
+    assert widget.container.enabled is True
+    assert widget.min_slider.enabled is True
+    assert widget.max_slider.enabled is True
+
+    # Test disabling
+    widget.enabled = False
+    assert widget.enabled is False
+    assert widget.container.enabled is False
+    assert widget.min_slider.enabled is False
+    assert widget.max_slider.enabled is False
+
+    # Test re-enabling
+    widget.enabled = True
+    assert widget.enabled is True
+    assert widget.container.enabled is True
+    assert widget.min_slider.enabled is True
+    assert widget.max_slider.enabled is True
+
+
 def test_visibility_and_enabled(widget):
     assert widget.min_slider.visible is True
     assert widget.max_slider.visible is True

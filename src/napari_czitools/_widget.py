@@ -117,14 +117,14 @@ class CziReaderWidget(QWidget):
     def _file_changed(self):
         """Callback for when the file edit changes."""
         filepath = self.filename_edit.value
-        logger.info("File changed to: %(filepath)s", extra={"filepath": filepath})
-        # Here you can add logic to handle the file change, e.g., load data
+        logger.info("File changed to: %s", filepath)
 
-        # diable the load pixel button
-        #self.load_pixeldata.enabled = False
-
-        # read the metadata from the file
-        self.metadata = CziMetadata(filepath)
+        # Create metadata from the selected file
+        try:
+            self.metadata = CziMetadata(filepath)
+        except (FileNotFoundError, ValueError, OSError) as e:
+            logger.error("Failed to load metadata from file %s: %s", filepath, str(e))
+            return
 
         # create a nested dictionary for the tree and a reduced dictionary for the table
         md_dict_tree = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
@@ -145,11 +145,9 @@ class CziReaderWidget(QWidget):
 
         for size_attr, slider in slider_mapping.items():
             size_value = getattr(self.metadata.image, size_attr, None)
-            logger.info(f"Size attribute {size_attr} has value: {size_value}")
+            # logger.info("Size attribute %s has value: %s", size_attr, size_value)
             if size_value is not None:
                 slider.enabled = True
-                slider.min_slider.enabled = True
-                slider.max_slider.enabled = True
                 slider.min_slider.min = 0
                 slider.max_slider.max = size_value - 1
                 slider.min_slider.value = 0
@@ -157,13 +155,10 @@ class CziReaderWidget(QWidget):
             else:
                 # Reset slider if size_value is None
                 slider.enabled = False
-                slider.min_slider.enabled = False
-                slider.max_slider.enabled = False
                 slider.min_slider.min = 0
                 slider.max_slider.max = 0
                 slider.min_slider.value = 0
                 slider.max_slider.value = 0
-
 
         # Enable the load pixel data button
         self.load_pixeldata.enabled = True
@@ -196,8 +191,5 @@ class CziReaderWidget(QWidget):
             "Z": (self.z_slider.min_slider.value, self.z_slider.max_slider.value),
         }
 
-        logger.info(
-            "Read Pixel data for file: %(filepath)s - Planes: %(planes)s",
-            extra={"filepath": self.filename_edit.value, "planes": planes},
-        )
+        logger.info("Read Pixel data for file: %s - Planes: %s", self.filename_edit.value, planes)
         reader_function_adv(self.filename_edit.value, zoom=1.0, planes=planes, show_metadata=MetadataDisplayMode.NONE)
