@@ -26,22 +26,10 @@ contributions:
     - id: napari-czitools.zstack_data
       python_name: napari_czitools._sample_data:zstack_data
       title: Load ZStack Data
-
-    - id: napari-czitools.make_container_widget
-      python_name: napari_czitools:ImageThreshold
-      title: Make threshold Container widget
-
-    - id: napari-czitools.make_magic_widget
-      python_name: napari_czitools:threshold_magic_widget
-      title: Make threshold magic widget
-
-    - id: napari-czitools.make_function_widget
-      python_name: napari_czitools:threshold_autogenerate_widget
-      title: Make threshold function widget
-
-    - id: napari-czitools.make_qwidget
-      python_name: napari_czitools:ExampleQWidget
-      title: Make example QWidget
+    
+    - id: napari-czitools.make_czireader_widget
+      python_name: napari_czitools._widget:CziReaderWidget
+      title: Create CZI Reader Widget
 
   readers:
     - command: napari-czitools.get_reader_adv
@@ -62,15 +50,6 @@ contributions:
       key: unique_id.2
 
   widgets:
-    - command: napari-czitools.make_container_widget
-      display_name: Container Threshold
 
-    - command: napari-czitools.make_magic_widget
-      display_name: Magic Threshold
-
-    - command: napari-czitools.make_function_widget
-      autogenerate: true
-      display_name: Autogenerate Threshold
-
-    - command: napari-czitools.make_qwidget
-      display_name: Example QWidget
+    - command: napari-czitools.make_czireader_widget
+      display_name: CZI Reader Widget
