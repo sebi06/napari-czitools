@@ -8,7 +8,7 @@ def test_reader(tmp_path):
     """An example of how you might test your plugin."""
 
     # try to read it back in
-    # reader = napari_get_reader(reader = napari_get_reader(r"src\napari_czitools\sample_data\CellDivision_T15_Z20_CH2_X600_Y500_DCV_ZSTD.czi"))
+    # reader = napari_get_reader(reader = napari_get_reader(r"src\napari_czitools\sample_data\CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"))
     # assert callable(reader)
     pass
 
