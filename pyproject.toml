@@ -46,10 +46,15 @@ testing = [
 [project.entry-points."napari.manifest"]
 napari-czitools = "napari_czitools:napari.yaml"
 
+# [project.entry-points."napari.sample_data"]
+# unique_id.0 = "napari_czitools._sample_data:load_sample0"
+# unique_id.1 = "napari_czitools._sample_data:load_sample1"
+# unique_id.2 = "napari_czitools._sample_data:load_sample2"
+
 [project.entry-points."napari.sample_data"]
-unique_id.0 = "napari_czitools._sample_data:load_sample0"
-unique_id.1 = "napari_czitools._sample_data:load_sample1"
-unique_id.2 = "napari_czitools._sample_data:load_sample2"
+sample0 = "napari_czitools._sample_data:load_sample0"
+sample1 = "napari_czitools._sample_data:load_sample1"
+sample2 = "napari_czitools._sample_data:load_sample2"
 
 [project.urls]
 "Bug Tracker" = "https://github.com/sebi06/napari-czitools/issues"
