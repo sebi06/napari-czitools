@@ -29,7 +29,8 @@ dependencies = [
     "qtpy",
     "superqt",
     "scikit-image",
-    "pyqtgraph"
+    "pyqtgraph",
+    "czitools"
 ]
 
 [project.optional-dependencies]
