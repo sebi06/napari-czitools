@@ -9,7 +9,7 @@ logger = logging_tools.set_logging()
 def celldivision_data():
     """Opens 5D CZI image dataset"""
 
-    filepath = check_filepath("CellDivision_T15_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
+    filepath = check_filepath("CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
 
     if filepath is None:
         logger.error("Could not find CellDivision sample data file")
