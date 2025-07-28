@@ -1,8 +1,9 @@
 import napari
-
+from napari_czitools._metadata_widget import MetadataDisplayMode
 from napari_czitools._io import CZIDataLoader
 
-path = r"src/napari_czitools/sample_data/RatBrain_Z79_ZSTD.czi"
+# path = r"src/napari_czitools/sample_data/RatBrain_Z79_ZSTD.czi"
+path = r"F:\Github\napari-czitools\src\napari_czitools\sample_data\CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"
 
 # call the function to add the data to the viewer
 czi = CZIDataLoader(
@@ -11,7 +12,7 @@ czi = CZIDataLoader(
     use_dask=False,
     chunk_zyx=False,
     use_xarray=True,
-    show_metadata="table",
+    show_metadata=MetadataDisplayMode.TABLE,
 )
 
 # add the data to the viewer

@@ -1,5 +1,8 @@
 from czitools.read_tools import read_tools
 from czitools.utils import logging_tools
+from napari.types import LayerDataTuple
+
+from napari_czitools._metadata_widget import MetadataDisplayMode
 
 from ._io import CZIDataLoader, process_channels
 
@@ -24,7 +27,13 @@ def napari_get_reader(path: str):
 
 # this function is called when using Open -> Files(s) directly from the menu
 def reader_function_adv(
-    path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True
+    path: str,
+    zoom=1.0,
+    use_dask=False,
+    chunk_zyx=False,
+    use_xarray=True,
+    planes: dict = None,
+    show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
 ):
     """Take a path, add layers and metadata to the viewer.
 
@@ -43,6 +52,10 @@ def reader_function_adv(
         Whether to chunk the data in the ZYX dimensions. Default is False.
     use_xarray : bool, optional
         Whether to use xarray for data representation. Default is True.
+    planes: dict, optional
+        A dictionary specifying which planes to read from the CZI file.
+    show_metadata : MetadataDisplayMode, optional
+        The mode for displaying metadata in the viewer. Can be "Table" or "Tree" or "None".
 
     Returns
     -------
@@ -57,11 +70,12 @@ def reader_function_adv(
     # call the function to add the data to the viewer
     czi = CZIDataLoader(
         path,
+        planes=planes,
         zoom=zoom,
         use_dask=use_dask,
         chunk_zyx=chunk_zyx,
         use_xarray=use_xarray,
-        show_metadata="table",
+        show_metadata=show_metadata,
     )
 
     # add the data to the viewer
@@ -78,8 +92,8 @@ def reader_function_adv(
 # See also: https://forum.image.sc/t/file-open-vs-open-sample-using-my-own-napari-plugin/111123/8?u=sebi06
 #
 def reader_function(
-    path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True
-):
+    path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True, planes: dict = None
+) -> list[LayerDataTuple]:
 
     sample_data = []
 
@@ -90,6 +104,7 @@ def reader_function(
         chunk_zyx=chunk_zyx,
         zoom=zoom,
         use_xarray=use_xarray,
+        planes=planes,
     )
 
     # get the channel layers
@@ -113,4 +128,3 @@ def reader_function(
 
     # add the list of layers to th viewer
     return sample_data
-    # return layers

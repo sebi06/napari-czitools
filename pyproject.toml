@@ -1,7 +1,7 @@
 [project]
 name = "napari-czitools"
 dynamic = ["version"]
-description = "Plugin to read CZI image file and metadata"
+description = "Plugin to read CZI image files and their metadata"
 readme = "README.md"
 license = {file = "LICENSE"}
 authors = [
@@ -19,14 +19,18 @@ classifiers = [
     "Programming Language :: Python :: 3 :: Only",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
-requires-python = ">=3.10"
+requires-python = ">=3.10, <3.13"
 dependencies = [
     "numpy",
     "magicgui",
     "qtpy",
+    "superqt",
     "scikit-image",
+    "pyqtgraph",
+    "czitools"
 ]
 
 [project.optional-dependencies]
@@ -42,6 +46,16 @@ testing = [
 [project.entry-points."napari.manifest"]
 napari-czitools = "napari_czitools:napari.yaml"
 
+# [project.entry-points."napari.sample_data"]
+# unique_id.0 = "napari_czitools._sample_data:load_sample0"
+# unique_id.1 = "napari_czitools._sample_data:load_sample1"
+# unique_id.2 = "napari_czitools._sample_data:load_sample2"
+
+# [project.entry-points."napari.sample_data"]
+# sample0 = "napari_czitools._sample_data:load_sample0"
+# sample1 = "napari_czitools._sample_data:load_sample1"
+# sample2 = "napari_czitools._sample_data:load_sample2"
+
 [project.urls]
 "Bug Tracker" = "https://github.com/sebi06/napari-czitools/issues"
 "Documentation" = "https://github.com/sebi06/napari-czitools#README.md"
@@ -49,7 +63,7 @@ napari-czitools = "napari_czitools:napari.yaml"
 "User Support" = "https://github.com/sebi06/napari-czitools/issues"
 
 [build-system]
-requires = ["setuptools>=42.0.0", "wheel", "setuptools_scm"]
+requires = ["setuptools>=80", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
@@ -69,7 +83,7 @@ fallback_version = "0.0.1+nogit"
 
 [tool.black]
 line-length = 79
-target-version = ['py310', 'py311']
+target-version = ['py310', 'py311', 'py312']
 
 [tool.ruff]
 line-length = 79
