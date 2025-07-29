@@ -30,7 +30,7 @@ dependencies = [
     "superqt",
     "scikit-image",
     "pyqtgraph",
-    "czitools"
+    "czitools>=0.10.1"
 ]
 
 [project.optional-dependencies]
