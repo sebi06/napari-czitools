@@ -1,12 +1,11 @@
 from czitools.metadata_tools.czi_metadata import CziMetadata
-from czitools.read_tools import read_tools
+
+from napari_czitools._utilities import _check_filepath, _extract_base_path_and_filename
 
 url = r"https://github.com/sebi06/napari-czitools/raw/main/src/napari_czitools/sample_data/CellDivision_T3_Z6_CH1_X300_Y200_DCV_ZSTD.czi"
 
-# # return an array with dimension order STCZYX(A)
-# array6d, mdata = read_tools.read_6darray(url)
 
-# print(f"Array shape: {array6d.shape}")
+out = _check_filepath(url)
 
 # What happens internally in czitools when reading from URL:
 print("Creating CziMetadata from URL...")

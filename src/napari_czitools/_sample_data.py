@@ -1,7 +1,7 @@
 from czitools.utils import logging_tools
 
 from napari_czitools._reader import reader_function
-from napari_czitools._utilities import check_filepath
+from napari_czitools._utilities import _check_filepath
 
 logger = logging_tools.set_logging()
 
@@ -9,7 +9,7 @@ logger = logging_tools.set_logging()
 def celldivision_data():
     """Opens 5D CZI image dataset"""
 
-    filepath = check_filepath("CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
+    filepath = _check_filepath("CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
 
     if filepath is None:
         logger.error("Could not find CellDivision sample data file")
@@ -31,7 +31,7 @@ def celldivision_data():
 def wellplate_data():
     """Opens 6D CZI image dataset"""
 
-    filepath = check_filepath("testwell96_A1-D12_S48_T1_C2_Z1_X640_Y480_ZSTD.czi")
+    filepath = _check_filepath("testwell96_A1-D12_S48_T1_C2_Z1_X640_Y480_ZSTD.czi")
 
     if filepath is None:
         logger.error("Could not find wellplate sample data file")
@@ -53,7 +53,7 @@ def wellplate_data():
 def zstack_data():
     """Opens 3D CZI image dataset"""
 
-    filepath = check_filepath("RatBrain_Z79_ZSTD.czi")
+    filepath = _check_filepath("RatBrain_Z79_ZSTD.czi")
 
     if filepath is None:
         logger.error("Could not find zstack sample data file")
