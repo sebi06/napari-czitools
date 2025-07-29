@@ -6,6 +6,7 @@ References:
 Replace code below according to your needs.
 """
 
+import contextlib
 from typing import TYPE_CHECKING
 
 from czitools.metadata_tools import czi_metadata as czimd
@@ -18,6 +19,7 @@ from qtpy.QtWidgets import QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QVBoxL
 from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
 from ._range_widget import RangeSliderWidget
 from ._reader import reader_function_adv
+from ._utilities import _convert_numpy_types
 
 logger = logging_tools.set_logging()
 
@@ -66,7 +68,7 @@ class CziReaderWidget(QWidget):
             visible=True,
             enabled=False,
         )
-        self.load_pixeldata.native.setStyleSheet("border: 1px solid blue;")
+        # self.load_pixeldata.native.setStyleSheet("border: 1px solid blue;")
         self.load_pixeldata.native.clicked.connect(self._loadbutton_pressed)
 
         # Define Dimension slider configurations
@@ -89,13 +91,13 @@ class CziReaderWidget(QWidget):
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
 
         self.mdtable = MdTableWidget()
-        self.mdtable.setStyleSheet("border: 1px solid red;")
+        # self.mdtable.setStyleSheet("border: 1px solid red;")
         self.mdtable.setMinimumHeight(300)  # Set minimum height for the table
         self.mdtable.update_metadata({})
         self.mdtable.update_style(font_bold=False, font_size=6)
 
         self.mdtree = MdTreeWidget()
-        self.mdtree.setStyleSheet("border: 1px solid red;")
+        # self.mdtree.setStyleSheet("border: 1px solid red;")
         self.mdtree.setMinimumHeight(300)  # Set minimum height for the table
 
         self.current_md_widget = self.mdtable
@@ -133,6 +135,11 @@ class CziReaderWidget(QWidget):
         self.mdtree.setData(md_dict_tree, expandlevel=0, hideRoot=True)
 
         md_dict_table = czimd.create_md_dict_red(self.metadata, sort=True, remove_none=True)
+
+        # Convert all numpy values to native Python types for better display
+        with contextlib.suppress(Exception):  # Catch any conversion errors
+            md_dict_table = _convert_numpy_types(md_dict_table)
+
         self.mdtable.update_metadata(md_dict_table)
 
         # Update sliders based on metadata
@@ -147,15 +154,24 @@ class CziReaderWidget(QWidget):
             size_value = getattr(self.metadata.image, size_attr, None)
             # logger.info("Size attribute %s has value: %s", size_attr, size_value)
             if size_value is not None:
-                slider.enabled = True
+                # Update the range for both sliders first
                 slider.min_slider.min = 0
+                slider.min_slider.max = size_value - 1
+                slider.max_slider.min = 0
                 slider.max_slider.max = size_value - 1
+
+                # Set the values
                 slider.min_slider.value = 0
                 slider.max_slider.value = size_value - 1
+
+                # Enable the slider after setting up the range
+                slider.enabled = True
             else:
                 # Reset slider if size_value is None
                 slider.enabled = False
                 slider.min_slider.min = 0
+                slider.min_slider.max = 0
+                slider.max_slider.min = 0
                 slider.max_slider.max = 0
                 slider.min_slider.value = 0
                 slider.max_slider.value = 0

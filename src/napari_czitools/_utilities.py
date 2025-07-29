@@ -1,4 +1,5 @@
 import os
+from typing import Any
 from urllib.parse import urlparse
 
 import validators
@@ -62,3 +63,31 @@ def _extract_base_path_and_filename(url):
     base_url = f"{parsed_url.scheme}://{parsed_url.netloc}{base_path}"
 
     return base_url, filename
+
+
+def _convert_numpy_types(obj: Any) -> Any:
+    """
+    Recursively convert numpy types to native Python types.
+
+    This function handles numpy scalars, arrays, dictionaries, lists, and tuples.
+    It converts numpy scalars to their native Python equivalents, numpy arrays
+    to Python lists, and recursively processes dictionaries, lists, and tuples.
+
+    Args:
+        obj (Any): The object to convert. Can be a numpy scalar, numpy array,
+                   dictionary, list, tuple, or any other type.
+
+    Returns:
+        Any: The converted object with numpy types replaced by native Python types.
+    """
+    if hasattr(obj, "dtype"):  # numpy scalar or array
+        if obj.ndim == 0:  # scalar
+            return obj.item()  # Convert to native Python type
+        else:
+            return obj.tolist()  # Convert array to list
+    elif isinstance(obj, dict):
+        return {key: _convert_numpy_types(value) for key, value in obj.items()}
+    elif isinstance(obj, list | tuple):
+        return type(obj)(_convert_numpy_types(item) for item in obj)
+    else:
+        return obj
