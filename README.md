@@ -30,7 +30,6 @@ You can install `napari-czitools` via [pip]:
     pip install napari-czitools
 
 
-
 To install latest development version :
 
     pip install git+https://github.com/sebi06/napari-czitools.git
