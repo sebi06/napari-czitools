@@ -1,16 +1,17 @@
-import sys
 import os
+import sys
 
 sys.path.insert(0, "src")
-from napari_czitools._utilities import check_filepath
 from czitools.metadata_tools import czi_metadata as czimd
+
+from napari_czitools._utilities import _check_filepath
 
 # Clear headless environment
 os.environ.pop("HEADLESS", None)
 os.environ.pop("CI", None)
 os.environ.pop("GITHUB_ACTIONS", None)
 
-filepath = check_filepath("CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
+filepath = _check_filepath("CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
 print(f"File path: {filepath}")
 print(f"File exists: {os.path.exists(filepath) if filepath else False}")
 
