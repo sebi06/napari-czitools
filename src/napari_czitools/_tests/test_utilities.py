@@ -4,7 +4,7 @@ from unittest.mock import patch, MagicMock
 from napari_czitools._utilities import check_filepath
 
 TESTDATA_BASE_PATH = "src/napari_czitools/sample_data"
-GITHUB_BASE_URL = r"https://github.com/sebi06/napari-czitools/blob/main/src/napari_czitools/sample_data/"
+GITHUB_BASE_URL = r"https://github.com/sebi06/napari-czitools/raw/main/src/napari_czitools/sample_data/"
 
 
 @pytest.fixture
