@@ -1,16 +1,16 @@
-from qtpy.QtCore import QRect, Qt, Signal, QPoint
+from qtpy.QtCore import QPoint, QRect, Qt, Signal
+from qtpy.QtGui import QPainter
 from qtpy.QtWidgets import (
     QApplication,
+    QHBoxLayout,
     QLabel,
     QSlider,
     QStyle,
     QStyleOptionSlider,
     QStylePainter,
     QVBoxLayout,
-    QHBoxLayout,
     QWidget,
 )
-from qtpy.QtGui import QPainter
 
 
 class DoubleHandleSlider(QSlider):
@@ -108,23 +108,23 @@ class DoubleHandleSlider(QSlider):
         range_rect = QRect(handle_min_pos, groove_rect.top(), handle_max_pos - handle_min_pos, groove_rect.height())
         painter.fillRect(range_rect, self.palette().highlight())
 
-        # Draw the min handle as a downward-facing triangle
+        # Draw the min handle as a upward-facing triangle
         min_handle_rect = self._handleRect(self.min_value)
         min_triangle = [
-            min_handle_rect.center() + QPoint(-10, 0),
-            min_handle_rect.center() + QPoint(10, 0),
-            min_handle_rect.center() + QPoint(0, 20),
+            min_handle_rect.center() + QPoint(-10, 20),
+            min_handle_rect.center() + QPoint(10, 20),
+            min_handle_rect.center() + QPoint(0, 0),
         ]
         painter.setBrush(Qt.blue)  # Set color for the min handle to blue
         painter.setPen(Qt.blue)
         painter.drawPolygon(min_triangle)
 
-        # Draw the max handle as an upward-facing triangle
+        # Draw the max handle as an downward-facing triangle
         max_handle_rect = self._handleRect(self.max_value)
         max_triangle = [
-            max_handle_rect.center() + QPoint(-10, 0),
-            max_handle_rect.center() + QPoint(10, 0),
-            max_handle_rect.center() + QPoint(0, -20),
+            max_handle_rect.center() + QPoint(-10, -20),
+            max_handle_rect.center() + QPoint(10, -20),
+            max_handle_rect.center() + QPoint(0, 0),
         ]
         painter.setBrush(Qt.red)  # Set color for the max handle to red
         painter.setPen(Qt.red)
