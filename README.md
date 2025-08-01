@@ -37,12 +37,9 @@ To install latest development version :
 
 ## What does the plugin do
 
-The plugin allows you to:
+## What does the plugin NOT do
 
-- Use a *.czann file containing the Deep Neural Network (ONNX) for semantic segmentation and metadata
-- Segmentation will be applied per 2D plane for all dimensions
-- Processing larger multidimensional images it uses the [cztile] package to chunk the individual 2d arrays using a specific overlap.
-- multidimensional images will be processed plane-by-plane
+### Remarks
 
 ## Contributing
 
