@@ -91,13 +91,13 @@ class CziReaderWidget(QWidget):
 
         self.mdtable = MdTableWidget()
         # self.mdtable.setStyleSheet("border: 1px solid red;")
-        self.mdtable.setMinimumHeight(300)  # Set minimum height for the table
+        self.mdtable.setMinimumHeight(400)  # Set minimum height for the table
         self.mdtable.update_metadata({})
         self.mdtable.update_style(font_bold=False, font_size=6)
 
         self.mdtree = MdTreeWidget(show_type_column=self.show_type_column)
         # self.mdtree.setStyleSheet("border: 1px solid red;")
-        self.mdtree.setMinimumHeight(300)  # Set minimum height for the table
+        self.mdtree.setMinimumHeight(400)  # Set minimum height for the table
 
         self.current_md_widget = self.mdtable
         self.spacer_item = QSpacerItem(100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
