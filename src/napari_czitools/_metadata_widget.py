@@ -129,17 +129,22 @@ class MdTreeWidget(QWidget):
                 hideRoot (bool, optional): Whether to hide the root node of the tree. Defaults to True.
     """
 
-    def __init__(self, data=None, expandlevel=0) -> None:
+    def __init__(self, data=None, expandlevel=0, show_type_column=True) -> None:
         super(QWidget, self).__init__()
 
         self._explicitly_hidden = False
         self.label = "Metadata Tree"
+        self.show_type_column = show_type_column
 
         self.layout = QVBoxLayout(self)
         self.mdtree = DataTreeWidget(data=data)
         # First set data with default expansion
         self.mdtree.setData(data, expandlevel=0, hideRoot=True)
         self.mdtree.setAlternatingRowColors(False)
+
+        # Set type column visibility
+        self.set_type_column_visibility(show_type_column)
+
         # Collapse everything first
         self.mdtree.collapseAll()
 
@@ -154,8 +159,26 @@ class MdTreeWidget(QWidget):
         self.layout.addWidget(self.mdtree)
 
     def setData(self, data, expandlevel: int = 0, hideRoot: bool = True) -> None:
+        """
+        Updates the metadata displayed in the tree widget.
+
+        This method sets new data in the tree widget, applies the current type column
+        visibility setting, and handles the expansion logic. It first collapses all
+        items, then specifically expands the "image" entry by one level, and finally
+        applies any additional expansion based on the expandlevel parameter.
+
+        Args:
+            data: The new metadata to be displayed in the tree. Can be any data
+                  structure supported by DataTreeWidget.
+            expandlevel (int, optional): The depth to which the tree should be
+                                       expanded. Defaults to 0 (collapsed).
+            hideRoot (bool, optional): Whether to hide the root node of the tree.
+                                     Defaults to True.
+        """
         # First set the data without any expansion (use expandlevel=0 but we'll override it)
         self.mdtree.setData(data, expandlevel=0, hideRoot=hideRoot)
+        # Apply type column visibility after setting data
+        self.set_type_column_visibility(self.show_type_column)
         # Now collapse everything first
         self.mdtree.collapseAll()
 
@@ -167,8 +190,44 @@ class MdTreeWidget(QWidget):
             # With hideRoot=True, we need to expand one less level
             self.mdtree.expandToDepth(expandlevel - 1)
 
-    def _expand_specific_item(self, item_name: str, levels: int = 1):
-        """Expand a specific item in the tree by the specified number of levels."""
+    def set_type_column_visibility(self, visible: bool, column_id: int = 2) -> None:
+        """
+        Set the visibility of a column in the tree widget by its index.
+
+        This method controls whether a specific column (typically the type column)
+        is visible in the metadata tree widget. It updates the internal state
+        and applies the visibility change to the tree widget.
+
+        Args:
+            visible (bool): Whether the column should be visible (True) or hidden (False).
+            column_id (int, optional): The index of the column to show/hide.
+                                     Defaults to 2 (typically the type column).
+
+        Returns:
+            None
+        """
+        self.show_type_column = visible
+        if visible:
+            self.mdtree.showColumn(column_id)
+        else:
+            self.mdtree.hideColumn(column_id)
+
+    def _expand_specific_item(self, item_name: str, levels: int = 1) -> None:
+        """
+        Expand a specific item in the tree by the specified number of levels.
+
+        This method searches for a top-level item with the given name and expands it
+        along with its children to the specified depth. The search is case-insensitive.
+
+        Args:
+            item_name (str): The name of the item to find and expand.
+            levels (int, optional): The number of levels to expand. Defaults to 1.
+                                  If 1, only the found item is expanded.
+                                  If > 1, children are expanded recursively.
+
+        Returns:
+            None
+        """
         # Get the root item (invisible root)
         root = self.mdtree.invisibleRootItem()
 
@@ -184,8 +243,22 @@ class MdTreeWidget(QWidget):
                     self._expand_children_recursive(child, levels - 1)
                 break
 
-    def _expand_children_recursive(self, item, levels: int):
-        """Recursively expand children of an item to the specified depth."""
+    def _expand_children_recursive(self, item, levels: int) -> None:
+        """
+        Recursively expand children of an item to the specified depth.
+
+        This helper method traverses the tree structure starting from the given item
+        and expands all children up to the specified number of levels deep.
+
+        Args:
+            item: The tree widget item whose children should be expanded.
+                 This should be a QTreeWidgetItem or compatible object.
+            levels (int): The number of levels to expand. When this reaches 0,
+                         recursion stops. Each recursive call decrements this value.
+
+        Returns:
+            None
+        """
         if levels <= 0:
             return
 

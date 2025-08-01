@@ -26,7 +26,11 @@ contributions:
     - id: napari-czitools.zstack_data
       python_name: napari_czitools._sample_data:zstack_data
       title: Load ZStack Data
-    
+
+    - id: napari-czitools.airyscan_zstack_data
+      python_name: napari_czitools._sample_data:airyscan_zstack_data
+      title: Load Airyscan ZStack Data
+
     - id: napari-czitools.make_czireader_widget
       python_name: napari_czitools._widget:CziReaderWidget
       title: Create CZI Reader Widget
@@ -48,6 +52,10 @@ contributions:
     - command: napari-czitools.zstack_data
       display_name: Z-Stack dataset
       key: unique_id.2
+
+    - command: napari-czitools.airyscan_zstack_data
+      display_name: Airyscan Z-Stack dataset
+      key: unique_id.3
 
   widgets:
 

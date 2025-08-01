@@ -15,6 +15,8 @@ Plugin to read CZI image file and metadata
 
 This [napari] plugin was generated with [copier] using the [napari-plugin-template].
 
+![napari-czitools - Read CZI Metadata and load image Data](https://github.com/sebi06/napari-czitools/raw/main/readme_images/titel_pic.png)
+
 <!--
 Don't miss the full getting started guide to set up your new package:
 https://github.com/napari/napari-plugin-template#getting-started
@@ -29,11 +31,18 @@ You can install `napari-czitools` via [pip]:
 
     pip install napari-czitools
 
-
 To install latest development version :
 
     pip install git+https://github.com/sebi06/napari-czitools.git
 
+## What does the plugin do
+
+The plugin allows you to:
+
+- Use a *.czann file containing the Deep Neural Network (ONNX) for semantic segmentation and metadata
+- Segmentation will be applied per 2D plane for all dimensions
+- Processing larger multidimensional images it uses the [cztile] package to chunk the individual 2d arrays using a specific overlap.
+- multidimensional images will be processed plane-by-plane
 
 ## Contributing
 
