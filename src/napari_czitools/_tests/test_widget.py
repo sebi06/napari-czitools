@@ -2,6 +2,7 @@ import os
 
 import pytest
 
+from napari_czitools._doublerange_slider import LabeledDoubleRangeSliderWidget
 from napari_czitools._range_widget import RangeSliderWidget
 from napari_czitools._widget import (
     CziReaderWidget,
@@ -26,7 +27,13 @@ def test_czi_reader_widget_initialization(make_napari_viewer):
     # FileEdit widget may initialize with current directory as default
     assert widget.filename_edit.value is not None
     assert widget.mdata_widget.value == "Table"
-    assert isinstance(widget.scene_slider, RangeSliderWidget)
-    assert isinstance(widget.time_slider, RangeSliderWidget)
-    assert isinstance(widget.channel_slider, RangeSliderWidget)
-    assert isinstance(widget.z_slider, RangeSliderWidget)
+
+    # assert isinstance(widget.scene_slider, RangeSliderWidget)
+    # assert isinstance(widget.time_slider, RangeSliderWidget)
+    # assert isinstance(widget.channel_slider, RangeSliderWidget)
+    # assert isinstance(widget.z_slider, RangeSliderWidget)
+
+    assert isinstance(widget.scene_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+    assert isinstance(widget.time_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+    assert isinstance(widget.channel_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+    assert isinstance(widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
