@@ -15,7 +15,7 @@ Plugin to read CZI image file and metadata
 
 This [napari] plugin was generated with [copier] using the [napari-plugin-template].
 
-![napari-czitools - Read CZI Metadata and load image Data](https://github.com/sebi06/napari-czitools/raw/main/readme_images/titel_pic.png)
+![napari-czitools - Read CZI Metadata and load image Data](https://github.com/sebi06/napari-czitools/raw/main/readme_images/title_pic.png)
 
 <!--
 Don't miss the full getting started guide to set up your new package:
