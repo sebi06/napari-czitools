@@ -11,7 +11,7 @@ GITHUB_BASE_URL = r"https://github.com/sebi06/napari-czitools/raw/main/src/napar
 TESTDATA_BASE_PATH = "src/napari_czitools/sample_data"
 
 
-def _check_filepath(filepath: str) -> str | None:
+def check_filepath(filepath: str) -> str | None:
     """
     Verify the existence of a file locally or in the GitHub repository.
 
@@ -49,7 +49,7 @@ def _check_filepath(filepath: str) -> str | None:
             return None
 
 
-def _extract_base_path_and_filename(url):
+def extract_base_path_and_filename(url):
     # Parse the URL into components
     parsed_url = urlparse(url)
 
