@@ -129,17 +129,22 @@ class MdTreeWidget(QWidget):
                 hideRoot (bool, optional): Whether to hide the root node of the tree. Defaults to True.
     """
 
-    def __init__(self, data=None, expandlevel=0) -> None:
+    def __init__(self, data=None, expandlevel=0, show_type_column=True) -> None:
         super(QWidget, self).__init__()
 
         self._explicitly_hidden = False
         self.label = "Metadata Tree"
+        self.show_type_column = show_type_column
 
         self.layout = QVBoxLayout(self)
         self.mdtree = DataTreeWidget(data=data)
         # First set data with default expansion
         self.mdtree.setData(data, expandlevel=0, hideRoot=True)
         self.mdtree.setAlternatingRowColors(False)
+
+        # Set type column visibility
+        self.set_type_column_visibility(show_type_column)
+
         # Collapse everything first
         self.mdtree.collapseAll()
 
@@ -156,6 +161,8 @@ class MdTreeWidget(QWidget):
     def setData(self, data, expandlevel: int = 0, hideRoot: bool = True) -> None:
         # First set the data without any expansion (use expandlevel=0 but we'll override it)
         self.mdtree.setData(data, expandlevel=0, hideRoot=hideRoot)
+        # Apply type column visibility after setting data
+        self.set_type_column_visibility(self.show_type_column)
         # Now collapse everything first
         self.mdtree.collapseAll()
 
@@ -166,6 +173,14 @@ class MdTreeWidget(QWidget):
         if expandlevel > 0:
             # With hideRoot=True, we need to expand one less level
             self.mdtree.expandToDepth(expandlevel - 1)
+
+    def set_type_column_visibility(self, visible: bool, column_id: int = 2) -> None:
+        """Set the visibility of a column by its index."""
+        self.show_type_column = visible
+        if visible:
+            self.mdtree.showColumn(column_id)
+        else:
+            self.mdtree.hideColumn(column_id)
 
     def _expand_specific_item(self, item_name: str, levels: int = 1):
         """Expand a specific item in the tree by the specified number of levels."""
