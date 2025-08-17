@@ -1,6 +1,20 @@
+# the code for this widegt is inspired by:
+# https://github.com/sleepbysleep/range_slider_for_Qt5_and_PyQt5/blob/master/pyqt5_ranger_slider/range_slider.py
+#
+# https://www.mail-archive.com/pyqt@riverbankcomputing.com/msg22889.html
+
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtGui import QColor, QPainter
-from qtpy.QtWidgets import QApplication, QHBoxLayout, QLabel, QSlider, QStyle, QStyleOptionSlider, QVBoxLayout, QWidget
+from qtpy.QtWidgets import (
+    QApplication,
+    QHBoxLayout,
+    QLabel,
+    QSlider,
+    QStyle,
+    QStyleOptionSlider,
+    QVBoxLayout,
+    QWidget,
+)
 
 
 class LabeledDoubleRangeSliderWidget(QWidget):
@@ -51,7 +65,9 @@ class LabeledDoubleRangeSliderWidget(QWidget):
 
         # Create and add the label if requested
         if show_label:
-            self.label = QLabel(f"{dimension_label} Slider (Range: {min_value}-{max_value})")
+            self.label = QLabel(
+                f"{dimension_label} Slider (Range: {min_value}-{max_value})"
+            )
             layout.addWidget(self.label)
 
         # Create horizontal layout for slider and readout
@@ -110,7 +126,9 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         if self.show_label and hasattr(self, "label"):
             min_val = self.minimum()
             max_val = self.maximum()
-            self.label.setText(f"{self.dimension_label} Slider (Range: {min_val}-{max_val})")
+            self.label.setText(
+                f"{self.dimension_label} Slider (Range: {min_val}-{max_val})"
+            )
 
     # Slider value methods
     def low(self) -> int:
@@ -316,7 +334,9 @@ class DoubleRangeSlider(QSlider):
             self.initStyleOption(opt)
             opt.subControls = QStyle.SC_SliderHandle
 
-            if self.pressed_control and ((self.active_slider == i) or (self.active_slider == -1)):
+            if self.pressed_control and (
+                (self.active_slider == i) or (self.active_slider == -1)
+            ):
                 opt.activeSubControls = self.pressed_control
                 opt.state |= QStyle.State_Sunken
             else:
@@ -326,7 +346,9 @@ class DoubleRangeSlider(QSlider):
             opt.sliderValue = value
 
             # Get the handle rectangle
-            handle_rect = style.subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+            handle_rect = style.subControlRect(
+                QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self
+            )
 
             # Set color based on enabled state and slider index
             if not self.isEnabled():
@@ -363,7 +385,9 @@ class DoubleRangeSlider(QSlider):
 
             for i, value in enumerate([self._low, self._high]):
                 opt.sliderPosition = value
-                hit = style.hitTestComplexControl(QStyle.CC_Slider, opt, event.pos(), self)
+                hit = style.hitTestComplexControl(
+                    QStyle.CC_Slider, opt, event.pos(), self
+                )
                 if hit == QStyle.SC_SliderHandle:
                     self.active_slider = i
                     self.pressed_control = hit
@@ -374,7 +398,9 @@ class DoubleRangeSlider(QSlider):
 
             if self.active_slider < 0:
                 self.pressed_control = QStyle.SC_SliderHandle
-                self.click_offset = self.__pixelPosToRangeValue(self.__pick(event.pos()))
+                self.click_offset = self.__pixelPosToRangeValue(
+                    self.__pick(event.pos())
+                )
                 self.triggerAction(self.SliderMove)
                 self.setRepeatAction(self.SliderNoAction)
         else:
@@ -471,8 +497,12 @@ class DoubleRangeSlider(QSlider):
         self.initStyleOption(opt)
         style: QStyle = QApplication.style()
 
-        gr: object = style.subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderGroove, self)
-        sr: object = style.subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+        gr: object = style.subControlRect(
+            QStyle.CC_Slider, opt, QStyle.SC_SliderGroove, self
+        )
+        sr: object = style.subControlRect(
+            QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self
+        )
 
         if self.orientation() == Qt.Horizontal:
             slider_length: int = sr.width()
@@ -484,7 +514,11 @@ class DoubleRangeSlider(QSlider):
             slider_max: int = gr.bottom() - slider_length + 1
 
         return style.sliderValueFromPosition(
-            self.minimum(), self.maximum(), pos - slider_min, slider_max - slider_min, opt.upsideDown
+            self.minimum(),
+            self.maximum(),
+            pos - slider_min,
+            slider_max - slider_min,
+            opt.upsideDown,
         )
 
 
@@ -499,7 +533,9 @@ if __name__ == "__main__":
     def toggle_visibility():
         """Toggle the visibility of the complete labeled slider."""
         labeled_slider.setVisible(not labeled_slider.isVisible())
-        toggle_button.setText(f"{'Show' if not labeled_slider.isVisible() else 'Hide'} Labeled Slider")
+        toggle_button.setText(
+            f"{'Show' if not labeled_slider.isVisible() else 'Hide'} Labeled Slider"
+        )
 
     app = QApplication(sys.argv)
 
