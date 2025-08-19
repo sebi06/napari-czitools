@@ -39,39 +39,58 @@ To install latest development version :
 
 Right now the plugin is tested on Linux and Windows since there are no official wheels. It should work on MacOS as well, but this has not been tested yet.
 
-## What does the plugin do
+
+## Usage - Core Functionalities
 
 The plugin provides a reader for CZI files and allows to load the image data into [napari]. It also reads the metadata from the CZI file and displays it in the metadata panel of [napari].
 
-### Core Functionalities
+### Open Complete CZI Files
 
 * Open complete CZI Files and display the metadata in Napari using the [czitools] package
 
-![Open complte CZI file](./readme_images/file_open_mdtable_lls7.png)
+![Open complete CZI file](./readme_images/file_open_mdtable_lls7.png)
 
 * Open different CZI Image sample data (not display of metadata yet)
   * will be opened using via an internet connection if not found locally in current directory `../src/napari_czitools/sample_data
 
 ![Open sample data](./readme_images/open_sample1.png)
 
-### Sample Data - CellDivision 5D Stack
+### Open CZI Sample Data
+
+#### CellDivision 5D Stack
 
 ![Sample Data - 5D Stack](./readme_images/open_sample_5D.png)
 
-### Sample Data - 3D Stack
+#### Neurons 3D Stack
 
 ![Sample Data - 3D Stack](./readme_images/open_sample_3D.png)
 
-### Sample Data - AiryScan 3D Stack
+#### AiryScan 3D Stack
 
 ![Sample Data - AiryScan 3D Stack](./readme_images/open_sample_airyscan.png)
 
-### Sample Data - Wellplate Data
+#### Wellplate Data
 
 ![Sample Data - Wellpate](./readme_images/open_sample_wellplate.png)
-   `
+
+### Advanced CZI Reader (CtiReadTools) plugin
+
 * Open CZI Metadata only via "Plugins > Advanced CZI Reader (CziReadTools)"
 
+![Advanced CZI Reader - Plugin](./readme_images/reader_adv1.png)
+
+* Metadata will update the dimension double-range sliders and enable reading the pixel data
+* Metadata can be shown as a **table** or as a **tree view**
+
+![Advanced CZI Reader - Plugin](./readme_images/reader_adv2.png)
+
+![Advanced CZI Reader - Plugin](./readme_images/reader_adv3.png)
+
+* Slider allow to define size of CZI subset to be read
+
+![Advanced CZI Reader - Plugin](./readme_images/load_pixel1.png)
+
+![Advanced CZI Reader - Plugin](./readme_images/load_pixel2.png)
 
 ## What does the plugin NOT do
 
