@@ -35,7 +35,17 @@ To install latest development version :
 
     pip install git+https://github.com/sebi06/napari-czitools.git
 
+## Supported OS
+
+Right now the plugin is tested on Linux and Windows sinve there are no offical wheels. It should work on MacOS as well, but this has not been tested yet.
+
 ## What does the plugin do
+
+The plugin provides a reader for CZI files and allows to load the image data into napari. It also reads the metadata from the CZI file and displays it in the metadata panel of napari.
+
+### Core Functionalities
+
+* Open CZI Sample via
 
 ## What does the plugin NOT do
 
