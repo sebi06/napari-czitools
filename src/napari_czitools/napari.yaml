@@ -1,6 +1,6 @@
 name: napari-czitools
 
-display_name: CziTools
+display_name: CziReadTools
 
 # use 'hidden' to remove plugin from napari hub search results
 visibility: public
@@ -60,4 +60,4 @@ contributions:
   widgets:
 
     - command: napari-czitools.make_czireader_widget
-      display_name: CZI Reader Widget
+      display_name: Advanced CZI Reader
