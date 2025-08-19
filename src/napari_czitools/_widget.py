@@ -15,7 +15,15 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.utils import logging_tools
 from magicgui.types import FileDialogMode
 from magicgui.widgets import ComboBox, FileEdit, PushButton
-from qtpy.QtWidgets import QCheckBox, QHBoxLayout, QLabel, QSizePolicy, QSpacerItem, QVBoxLayout, QWidget
+from qtpy.QtWidgets import (
+    QCheckBox,
+    QHBoxLayout,
+    QLabel,
+    QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
+)
 
 from ._doublerange_slider import LabeledDoubleRangeSliderWidget
 from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
@@ -37,7 +45,12 @@ class SliderType(Enum):
 class CziReaderWidget(QWidget):
     # your QWidget.__init__ can optionally request the napari viewer instance
     # use a type annotation of 'napari.viewer.Viewer' for any parameter
-    def __init__(self, viewer: "napari.viewer.Viewer", sliders=SliderType.DoubleRangeSlider, show_type_column=True):
+    def __init__(
+        self,
+        viewer: "napari.viewer.Viewer",
+        sliders=SliderType.DoubleRangeSlider,
+        show_type_column=True,
+    ):
         super().__init__()
         # store the viewer instance for later use
         self.viewer = viewer
@@ -50,12 +63,14 @@ class CziReaderWidget(QWidget):
 
         # 1. FileDialog Section
         file_layout = QHBoxLayout()
-        file_label = QLabel("Select a CZI Image File:")
+        file_label = QLabel("Select CZI Image:")
         file_layout.addWidget(file_label)
 
         # define filter based on file extension
         model_extension = "*.czi"
-        self.filename_edit = FileEdit(mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension)
+        self.filename_edit = FileEdit(
+            mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension
+        )
         file_layout.addWidget(self.filename_edit.native)
         self.filename_edit.line_edit.changed.connect(self._file_changed)
 
@@ -75,7 +90,9 @@ class CziReaderWidget(QWidget):
         # Add checkbox for type column visibility
         self.type_column_checkbox = QCheckBox("Show Type Column")
         self.type_column_checkbox.setChecked(self.show_type_column)
-        self.type_column_checkbox.stateChanged.connect(self._type_column_changed)
+        self.type_column_checkbox.stateChanged.connect(
+            self._type_column_changed
+        )
         # Initially hide the checkbox since default display is Table
         self.type_column_checkbox.hide()
         mdcombo_layout.addWidget(self.type_column_checkbox)
@@ -100,13 +117,17 @@ class CziReaderWidget(QWidget):
         self.mdtree.setMinimumHeight(400)  # Set minimum height for the table
 
         self.current_md_widget = self.mdtable
-        self.spacer_item = QSpacerItem(100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.spacer_item = QSpacerItem(
+            100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
 
         # Add all widgets to the main layout
         self.main_layout.addLayout(file_layout)  # Add FileDialog section
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
 
-        self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
+        self.main_layout.addWidget(
+            self.mdtable
+        )  # Add the native Qt widget of the table
         self.main_layout.addItem(self.spacer_item)
         self.main_layout.addWidget(self.load_pixeldata.native)
 
@@ -122,7 +143,12 @@ class CziReaderWidget(QWidget):
             # Create two sliders dynamically
             for label, attr_name in slider_configs:
                 slider = RangeSliderWidget(
-                    dimension_label=label, min_value=0, max_value=0, readout=True, visible=True, enabled=False
+                    dimension_label=label,
+                    min_value=0,
+                    max_value=0,
+                    readout=True,
+                    visible=True,
+                    enabled=False,
                 )
                 setattr(self, attr_name, slider)
 
@@ -135,7 +161,12 @@ class CziReaderWidget(QWidget):
             # Create double-range sliders dynamically
             for label, attr_name in slider_configs:
                 slider = LabeledDoubleRangeSliderWidget(
-                    dimension_label=label, min_value=0, max_value=0, readout=True, visible=True, enabled=False
+                    dimension_label=label,
+                    min_value=0,
+                    max_value=0,
+                    readout=True,
+                    visible=True,
+                    enabled=False,
                 )
                 setattr(self, attr_name, slider)
 
@@ -156,16 +187,22 @@ class CziReaderWidget(QWidget):
         try:
             self.metadata = CziMetadata(filepath)
         except (FileNotFoundError, ValueError, OSError) as e:
-            logger.error("Failed to load metadata from file %s: %s", filepath, str(e))
+            logger.error(
+                "Failed to load metadata from file %s: %s", filepath, str(e)
+            )
             return
 
         # create a nested dictionary for the tree and a reduced dictionary for the table
-        md_dict_tree = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
+        md_dict_tree = czimd.create_md_dict_nested(
+            self.metadata, sort=True, remove_none=True
+        )
         # drop certain entries
         md_dict_tree.pop("bbox", None)
         self.mdtree.setData(md_dict_tree, expandlevel=0, hideRoot=True)
 
-        md_dict_table = czimd.create_md_dict_red(self.metadata, sort=True, remove_none=True)
+        md_dict_table = czimd.create_md_dict_red(
+            self.metadata, sort=True, remove_none=True
+        )
 
         # Convert all numpy values to native Python types for better display
         with contextlib.suppress(Exception):  # Catch any conversion errors
@@ -276,10 +313,22 @@ class CziReaderWidget(QWidget):
         if self.sliders == SliderType.TwoSliders:
             # get the require values to read the pixel data and show the layers
             planes = {
-                "S": (self.scene_slider.min_slider.value, self.scene_slider.max_slider.value),
-                "T": (self.time_slider.min_slider.value, self.time_slider.max_slider.value),
-                "C": (self.channel_slider.min_slider.value, self.channel_slider.max_slider.value),
-                "Z": (self.z_slider.min_slider.value, self.z_slider.max_slider.value),
+                "S": (
+                    self.scene_slider.min_slider.value,
+                    self.scene_slider.max_slider.value,
+                ),
+                "T": (
+                    self.time_slider.min_slider.value,
+                    self.time_slider.max_slider.value,
+                ),
+                "C": (
+                    self.channel_slider.min_slider.value,
+                    self.channel_slider.max_slider.value,
+                ),
+                "Z": (
+                    self.z_slider.min_slider.value,
+                    self.z_slider.max_slider.value,
+                ),
             }
         elif self.sliders == SliderType.DoubleRangeSlider:
             # get the require values to read the pixel data and show the layers
@@ -290,5 +339,14 @@ class CziReaderWidget(QWidget):
                 "Z": (self.z_slider.low(), self.z_slider.high()),
             }
 
-        logger.info("Read Pixel data for file: %s - Planes: %s", self.filename_edit.value, planes)
-        reader_function_adv(self.filename_edit.value, zoom=1.0, planes=planes, show_metadata=MetadataDisplayMode.NONE)
+        logger.info(
+            "Read Pixel data for file: %s - Planes: %s",
+            self.filename_edit.value,
+            planes,
+        )
+        reader_function_adv(
+            self.filename_edit.value,
+            zoom=1.0,
+            planes=planes,
+            show_metadata=MetadataDisplayMode.NONE,
+        )
