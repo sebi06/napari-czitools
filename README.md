@@ -73,18 +73,22 @@ The plugin provides a reader for CZI files and allows to load the image data int
 
 ![Sample Data - Wellpate](./readme_images/open_sample_wellplate.png)
 
-### Advanced CZI Reader (CtiReadTools) plugin
+### Advanced CZI Reader (CziReadTools) plugin
 
-* Open CZI Metadata only via "Plugins > Advanced CZI Reader (CziReadTools)"
+Select the plugin to show the UI in the right panel of the Napari UI via "Plugins > Advanced CZI Reader (CziReadTools)"
 
-![Advanced CZI Reader - Plugin](./readme_images/reader_adv1.png)
+1) Select the CZI file to read its metadata
+2) Once the metadata are read the display can be toggled between a **table** and a **tree view**
+3) The metadata will update the dimension double-range sliders and enable reading the pixel data
 
-* Metadata will update the dimension double-range sliders and enable reading the pixel data
-* Metadata can be shown as a **table** or as a **tree view**
+<img src="./readme_images/reader_adv1.png" alt="Advanced CZI Reader - Plugin" style="width:30%; height:auto;">
 
-![Advanced CZI Reader - Plugin](./readme_images/reader_adv2.png)
+1) Metadata will be shown as a **table** or as a **tree view**
+2) The **Load Pixel Data** button will be enabled once the metadata is read
+3) The **Dimension Sliders** will be enabled and allow to select an range to be read for all available dimensions
 
-![Advanced CZI Reader - Plugin](./readme_images/reader_adv3.png)
+<img src="./readme_images/reader_adv2.png" alt="Advanced CZI Reader - Plugin" style="width:80%; height:auto;">
+
 
 * Slider allow to define size of CZI subset to be read
 
