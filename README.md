@@ -35,10 +35,14 @@ To install latest development version :
 
     pip install git+https://github.com/sebi06/napari-czitools.git
 
-## Supported OS
+## Supported Operating Systems
 
-Right now the plugin is tested on Linux and Windows since there are no official wheels. It should work on MacOS as well, but this has not been tested yet.
+Currently this only tested on:
 
+* Linux
+* Windows
+
+MacOS is not supported yet out of the box yet, but [czitools] uses [pylibCZIrw]. But it should be possible to install it manually: [MaxOS wheels for pylibCZIrw] (read and write CZI files on MacOS).
 
 ## Usage - Core Functionalities
 
@@ -50,8 +54,8 @@ The plugin provides a reader for CZI files and allows to load the image data int
 
 ![Open complete CZI file](./readme_images/file_open_mdtable_lls7.png)
 
-* Open different CZI Image sample data (not display of metadata yet)
-  * will be opened using via an internet connection if not found locally in current directory `../src/napari_czitools/sample_data
+* Open different CZI Image sample data
+*  if not found locally in current directory `../src/napari_czitools/sample_data` it will be opened from remote repository (might be slow)
 
 ![Open sample data](./readme_images/open_sample1.png)
 
@@ -90,15 +94,23 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 <img src="./readme_images/reader_adv2.png" alt="Advanced CZI Reader - Plugin" style="width:80%; height:auto;">
 
 
-* Slider allow to define size of CZI subset to be read
+* The dimensions slider allow to define size of CZI subset to be read
+* This allows to read parts of a CZI image dataset
+* Important - when reading a subset the metadata will still reflects the size of the complete CZI
 
 ![Advanced CZI Reader - Plugin](./readme_images/load_pixel1.png)
 
+* Example for reading a subset
+  * Timepoints (4-7): 4 slices or T=4
+  * Channels (0-0): 1 slice or CH=1
+  * Z-Plane (7-10): 4 slices or Z=4
+
 ![Advanced CZI Reader - Plugin](./readme_images/load_pixel2.png)
 
-## What does the plugin NOT do
+## Current Limitations
 
-### Remarks
+* reading CZI with multiple scenes only works when the scenes have equal size
+* opening the sample CZI files will not display the CZI metadata right now
 
 ## Contributing
 
@@ -129,3 +141,5 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [pip]: https://pypi.org/project/pip/
 [PyPI]: https://pypi.org/
 [czitools]: https://pypi.org/project/czitools/
+[pylibCZIrw]: https://pypi.org/project/pylibCZIrw/
+[MaxOS wheels for pylibCZIrw]: https://pypi.scm.io/#/package/pylibczirw
