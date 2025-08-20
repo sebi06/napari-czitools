@@ -109,8 +109,18 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 
 ## Current Limitations
 
+The plugin is still in its very early stage, therefor expect bugs and breaking changes
+
 * reading CZI with multiple scenes only works when the scenes have equal size
 * opening the sample CZI files will not display the CZI metadata right now
+
+### Future plans
+
+* allow reading individual scenes when scenes have different sizes
+* upgrade [pylibCZIrw] to allow use [bioio-czi] for even better reading
+* export of metadata table
+
+Feedback is always welcome!
 
 ## Contributing
 
@@ -126,6 +136,17 @@ Distributed under the terms of the [MIT] license,
 
 If you encounter any problems, please [file an issue] along with a detailed description.
 
+# Disclaimer
+
+The software & scripts are free to use for everybody. The author undertakes no warranty concerning the use of this plugins and scripts. Use them on your own risk.
+
+By using this plugin you agree to this disclaimer.
+
+Version: 2025.08.20
+
+Copyright (c) 2025 Carl Zeiss AG, Germany. All Rights Reserved.
+
+
 [napari]: https://github.com/napari/napari
 [copier]: https://copier.readthedocs.io/en/stable/
 [@napari]: https://github.com/napari
@@ -138,3 +159,4 @@ If you encounter any problems, please [file an issue] along with a detailed desc
 [czitools]: https://pypi.org/project/czitools/
 [pylibCZIrw]: https://pypi.org/project/pylibCZIrw/
 [MaxOS wheels for pylibCZIrw]: https://pypi.scm.io/#/package/pylibczirw
+[bioio-czi]: https://pypi.org/project/bioio-czi/
