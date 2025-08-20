@@ -1,3 +1,21 @@
+- [napari-czitools](#napari-czitools)
+  - [Installation](#installation)
+  - [Supported Operating Systems](#supported-operating-systems)
+  - [Usage - Core Functionalities](#usage---core-functionalities)
+    - [Open Complete CZI Files](#open-complete-czi-files)
+    - [Open CZI Sample Data](#open-czi-sample-data)
+      - [CellDivision 5D Stack](#celldivision-5d-stack)
+      - [Neurons 3D Stack](#neurons-3d-stack)
+      - [AiryScan 3D Stack](#airyscan-3d-stack)
+      - [Wellplate Data](#wellplate-data)
+    - [Advanced CZI Reader (CziReadTools) plugin](#advanced-czi-reader-czireadtools-plugin)
+  - [Current Limitations](#current-limitations)
+    - [Future plans](#future-plans)
+  - [Contributing](#contributing)
+  - [License](#license)
+  - [Issues](#issues)
+- [Disclaimer](#disclaimer)
+
 # napari-czitools
 
 [![License MIT](https://img.shields.io/pypi/l/napari-czitools.svg?color=green)](https://github.com/sebi06/napari-czitools/raw/main/LICENSE)
