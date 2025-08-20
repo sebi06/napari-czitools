@@ -162,8 +162,6 @@ By using this plugin you agree to this disclaimer.
 
 Version: 2025.08.20
 
-Copyright (c) 2025 Carl Zeiss AG, Germany. All Rights Reserved.
-
 
 [napari]: https://github.com/napari/napari
 [copier]: https://copier.readthedocs.io/en/stable/
