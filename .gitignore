@@ -87,4 +87,5 @@ venv/
 **/src/experimental/**
 **/experimental/**
 src/experimental/**
+napari-czitools/src/experimental/**
 /.vscode/
