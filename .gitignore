@@ -82,3 +82,11 @@ venv/
 
 # written by setuptools_scm
 **/_version.py
+
+# skip folders
+**/src/experimental/**
+**/experimental/**
+src/experimental/**
+napari-czitools/src/experimental/**
+napari-czitools/experimental/**
+/.vscode/
