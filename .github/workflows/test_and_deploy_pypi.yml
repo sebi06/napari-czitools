@@ -1,6 +1,8 @@
 # This workflows will upload a Python Package using Twine when a release is created
 # For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
 
+# how to release a new version: https://github.com/napari/napari-plugin-template/blob/main/README.md
+
 name: test_and_deploy_pypi
 
 on:
