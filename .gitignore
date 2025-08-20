@@ -82,3 +82,9 @@ venv/
 
 # written by setuptools_scm
 **/_version.py
+
+# skip folders
+**/src/experimental/**
+**/experimental/**
+src/experimental/**
+/.vscode/
