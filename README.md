@@ -57,8 +57,8 @@ To install latest development version :
 
 Currently this only tested on:
 
-* Linux
-* Windows
+- Linux
+- Windows
 
 MacOS is not supported yet out of the box yet, but [czitools] uses [pylibCZIrw]. But it should be possible to install it manually: [MaxOS wheels for pylibCZIrw] (read and write CZI files on MacOS).
 
@@ -68,32 +68,32 @@ The plugin provides a reader for CZI files and allows to load the image data int
 
 ### Open Complete CZI Files
 
-* Open complete CZI Files and display the metadata in Napari using the [czitools] package
+- Open complete CZI Files and display the metadata in Napari using the [czitools] package
 
 ![Open complete CZI file](./readme_images/file_open_mdtable_lls7.png)
 
-* Open different CZI Image sample data
-*  if not found locally in current directory `../src/napari_czitools/sample_data` it will be opened from remote repository (might be slow)
+- Open different CZI Image sample data
+- if not found locally in current directory `../src/napari_czitools/sample_data` it will be opened from remote repository (might be slow)
 
-![Open sample data](./readme_images/open_sample1.png)
+![Open sample data](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample1.png)
 
 ### Open CZI Sample Data
 
 #### CellDivision 5D Stack
 
-![Sample Data - 5D Stack](./readme_images/open_sample_5D.png)
+![Sample Data - 5D Stack](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample_5D.png)
 
 #### Neurons 3D Stack
 
-![Sample Data - 3D Stack](./readme_images/open_sample_3D.png)
+![Sample Data - 3D Stack](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample_3D.png)
 
 #### AiryScan 3D Stack
 
-![Sample Data - AiryScan 3D Stack](./readme_images/open_sample_airyscan.png)
+![Sample Data - AiryScan 3D Stack](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample_airyscan.png)
 
 #### Wellplate Data
 
-![Sample Data - Wellpate](./readme_images/open_sample_wellplate.png)
+![Sample Data - Wellpate](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample_wellplate.png)
 
 ### Advanced CZI Reader (CziReadTools) plugin
 
@@ -103,25 +103,24 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 2) Once the metadata are read the display can be toggled between a **table** and a **tree view**
 3) The metadata will update the dimension double-range sliders and enable reading the pixel data
 
-<img src="./readme_images/reader_adv1.png" alt="Advanced CZI Reader - Plugin" style="width:30%; height:auto;">
+<img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv1.png" alt="Advanced CZI Reader - Plugin" style="width:30%; height:auto;">
 
 1) Metadata will be shown as a **table** or as a **tree view**
 2) The **Load Pixel Data** button will be enabled once the metadata is read
 3) The **Dimension Sliders** will be enabled and allow to select an range to be read for all available dimensions
 
-<img src="./readme_images/reader_adv2.png" alt="Advanced CZI Reader - Plugin" style="width:80%; height:auto;">
+<img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv2.png" alt="Advanced CZI Reader - Plugin" style="width:80%; height:auto;">
 
-
-* The dimensions slider allow to define size of CZI subset to be read
-* This allows to read parts of a CZI image dataset
-* Important - when reading a subset the metadata will still reflects the size of the complete CZI
+- The dimensions slider allow to define size of CZI subset to be read
+- This allows to read parts of a CZI image dataset
+- Important - when reading a subset the metadata will still reflects the size of the complete CZI
 
 ![Advanced CZI Reader - Plugin](./readme_images/load_pixel1.png)
 
-* Example for reading a subset
-  * Timepoints (4-7): 4 slices or T=4
-  * Channels (0-0): 1 slice or CH=1
-  * Z-Plane (7-10): 4 slices or Z=4
+- Example for reading a subset
+  - Timepoints (4-7): 4 slices or T=4
+  - Channels (0-0): 1 slice or CH=1
+  - Z-Plane (7-10): 4 slices or Z=4
 
 ![Advanced CZI Reader - Plugin](./readme_images/load_pixel2.png)
 
@@ -129,14 +128,14 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 
 The plugin is still in its very early stage, therefor expect bugs and breaking changes
 
-* reading CZI with multiple scenes only works when the scenes have equal size
-* opening the sample CZI files will not display the CZI metadata right now
+- reading CZI with multiple scenes only works when the scenes have equal size
+- opening the sample CZI files will not display the CZI metadata right now
 
 ### Future plans
 
-* allow reading individual scenes when scenes have different sizes
-* upgrade [pylibCZIrw] to allow use [bioio-czi] for even better reading
-* export of metadata table
+- allow reading individual scenes when scenes have different sizes
+- upgrade [pylibCZIrw] to allow use [bioio-czi] for even better reading
+- export of metadata table
 
 Feedback is always welcome!
 
@@ -162,7 +161,6 @@ By using this plugin you agree to this disclaimer.
 
 Version: 2025.08.20
 
-
 [napari]: https://github.com/napari/napari
 [copier]: https://copier.readthedocs.io/en/stable/
 [@napari]: https://github.com/napari
@@ -171,7 +169,6 @@ Version: 2025.08.20
 [file an issue]: https://github.com/sebi06/napari-czitools/issues
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
-[PyPI]: https://pypi.org/
 [czitools]: https://pypi.org/project/czitools/
 [pylibCZIrw]: https://pypi.org/project/pylibCZIrw/
 [MaxOS wheels for pylibCZIrw]: https://pypi.scm.io/#/package/pylibczirw
