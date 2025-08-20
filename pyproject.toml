@@ -59,14 +59,13 @@ requires = ["setuptools>=80", "wheel", "setuptools_scm"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-include-package-data = true
+include-package-data = false
 
 [tool.setuptools.packages.find]
 where = ["src"]
-exclude = ["napari_czitools.sample_data*"]
 
 [tool.setuptools.package-data]
-"*" = ["*.yaml"]
+"napari_czitools" = ["*.yaml"]
 
 
 [tool.setuptools_scm]
