@@ -31,6 +31,10 @@ contributions:
       python_name: napari_czitools._sample_data:airyscan_zstack_data
       title: Load Airyscan ZStack Data
 
+    - id: napari-czitools.he_stain_data
+      python_name: napari_czitools._sample_data:he_stain_data
+      title: Load HE Stain Data
+
     - id: napari-czitools.make_czireader_widget
       python_name: napari_czitools._widget:CziReaderWidget
       title: Create CZI Reader Widget
@@ -56,6 +60,10 @@ contributions:
     - command: napari-czitools.airyscan_zstack_data
       display_name: Airyscan Z-Stack dataset
       key: unique_id.3
+
+    - command: napari-czitools.he_stain_data
+      display_name: HE Stain dataset
+      key: unique_id.4
 
   widgets:
 

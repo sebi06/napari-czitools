@@ -223,7 +223,7 @@ class CziReaderWidget(QWidget):
             for size_attr, slider in slider_mapping.items():
                 size_value = getattr(self.metadata.image, size_attr, None)
                 # logger.info("Size attribute %s has value: %s", size_attr, size_value)
-                if size_value is not None:
+                if size_value is not None and size_value > 1:
                     # Update the range for both sliders first
                     slider.min_slider.min = 0
                     slider.min_slider.max = size_value - 1
@@ -256,7 +256,7 @@ class CziReaderWidget(QWidget):
 
             for size_attr, slider in slider_mapping.items():
                 size_value = getattr(self.metadata.image, size_attr, None)
-                if size_value is not None:
+                if size_value is not None and size_value > 1:
                     # Update the range limits first
                     slider.setMinimum(0)
                     slider.setMaximum(size_value - 1)
