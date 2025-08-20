@@ -1,5 +1,18 @@
 include LICENSE
 include README.md
 
+# Include source code and YAML files
+recursive-include src *.py
+recursive-include src *.yaml
+
+# Explicitly exclude sample data directory and all its contents
+recursive-exclude src/napari_czitools/sample_data *
+prune src/napari_czitools/sample_data
+
 recursive-exclude * __pycache__
 recursive-exclude * *.py[co]
+recursive-exclude * *.ome.tiff
+recursive-exclude * *.czann
+recursive-exclude * *.tiff
+recursive-exclude * *.tif
+recursive-exclude * *.czi
