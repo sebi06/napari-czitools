@@ -122,3 +122,9 @@ exclude = [
 
 target-version = "py312"
 fix = true
+
+[tool.pytest.ini_options]
+markers = [
+    "qtbot: mark test as requiring Qt (uses pytest-qt)",
+    "network: mark test as requiring network access"
+]

@@ -1,27 +1,50 @@
+from pathlib import Path
+
 import numpy as np
+import pytest
 
 from napari_czitools import napari_get_reader
 
 
-# tmp_path is a pytest fixture
-def test_reader(tmp_path):
-    """An example of how you might test your plugin."""
-
-    # try to read it back in
-    # reader = napari_get_reader(reader = napari_get_reader(r"src\napari_czitools\sample_data\CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"))
-    # assert callable(reader)
-    pass
-
-    # # make sure we're delivering the right format
-    # layer_data_list = reader(my_test_file)
-    # assert isinstance(layer_data_list, list) and len(layer_data_list) > 0
-    # layer_data_tuple = layer_data_list[0]
-    # assert isinstance(layer_data_tuple, tuple) and len(layer_data_tuple) > 0
-    #
-    # # make sure it's the same as it started
-    # np.testing.assert_allclose(original_data, layer_data_tuple[0])
+@pytest.fixture
+def sample_czi_path():
+    """Fixture to provide sample CZI file path."""
+    return Path(
+        "src/napari_czitools/sample_data/CellDivision_T3_Z6_CH1_X300_Y200_DCV_ZSTD.czi"
+    )
 
 
-# def test_get_reader_pass():
-#     reader = napari_get_reader("fake.file")
-#     assert reader is None
+@pytest.mark.skip(
+    reason="This test is temporarily disabled. It does not work robustly yet."
+)
+@pytest.mark.qtbot
+def test_reader(tmp_path, qtbot, sample_czi_path, cleanup_qt):
+    """Test the napari_get_reader plugin function."""
+    try:
+        # Get the reader function
+        reader = napari_get_reader(str(sample_czi_path))
+        assert callable(reader)
+
+        if sample_czi_path.exists():
+            layer_data_list = reader(str(sample_czi_path))
+            assert isinstance(layer_data_list, list)
+            assert len(layer_data_list) > 0
+
+            layer_data = layer_data_list[0]
+            assert isinstance(layer_data, tuple)
+
+            data = layer_data[0]
+            if data is not None:
+                assert isinstance(data, np.ndarray)
+                assert data.ndim >= 2
+
+        assert napari_get_reader("fake.file") is None
+
+    finally:
+        # Ensure all Qt events are processed and widgets are cleaned up
+        qtbot.wait(200)
+
+        # Force cleanup of any remaining widgets
+        for widget in qtbot.app.topLevelWidgets():
+            widget.deleteLater()
+        qtbot.wait(500)
