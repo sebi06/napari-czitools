@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Optional
 
 import napari
 import numpy as np
@@ -123,17 +123,25 @@ class CZIDataLoader:
 
         if self.show_metadata == MetadataDisplayMode.TREE:
             # logger.info("Creating Metadata Tree")
-            md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
+            md_dict = czimd.create_md_dict_nested(
+                metadata, sort=True, remove_none=True
+            )
             mdtree = MdTreeWidget(data=md_dict, expandlevel=0)
-            viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
+            viewer.window.add_dock_widget(
+                mdtree, name="MetadataTree", area="right"
+            )
 
         if self.show_metadata == MetadataDisplayMode.TABLE:
             # logger.info("Creating Metadata Table")
-            md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
+            md_dict = czimd.create_md_dict_red(
+                metadata, sort=True, remove_none=True
+            )
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
             mdtable.update_style()
-            viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
+            viewer.window.add_dock_widget(
+                mdtable, name="MetadataTable", area="right"
+            )
 
         if self.show_metadata == MetadataDisplayMode.NONE:
             # logger.info("No Metadata Display")
@@ -182,6 +190,9 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
     channel_layers = []
 
+    # get the planes
+    subset_planes = array6d.attrs["subset_planes"]
+
     # loop over all channels
     for ch in range(array6d.sizes["C"]):
 
@@ -190,7 +201,9 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
         # get the scaling factors for that channel and adapt Z-axis scaling
         scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio["zx_sf"]
+        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
+            "zx_sf"
+        ]
 
         # remove the last scaling factor in case of an RGB image
         if "A" in sub_array.dims:
@@ -198,10 +211,11 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
             scalefactors.pop(sub_array.get_axis_num("A"))
 
         # get colors and channel name
-        chname = metadata.channelinfo.names[ch]
+        ch_index = subset_planes["C"][0] + ch
+        chname = metadata.channelinfo.names[ch_index]
 
         # inside the CZI metadata_tools colors are defined as ARGB hexstring
-        rgb = "#" + metadata.channelinfo.colors[ch][3:]
+        rgb = "#" + metadata.channelinfo.colors[ch_index][3:]
         ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
 
         # guess an appropriate scaling from the display setting embedded in the CZI
@@ -214,8 +228,10 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
                 metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch],
                 0,
             )
-        except IndexError as e:
-            logger.warning("Calculation from display setting from CZI failed. Use 0-Max instead.")
+        except IndexError:
+            logger.warning(
+                "Calculation from display setting from CZI failed. Use 0-Max instead."
+            )
             lower = 0
             higher = metadata.maxvalue[ch]
 

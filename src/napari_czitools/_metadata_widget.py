@@ -109,6 +109,15 @@ class MdTableWidget(QWidget):
         item2.setFont(fnt)
         self.mdtable.setHorizontalHeaderItem(1, item2)
 
+    def setRowCount(self, count: int) -> None:
+        """
+        Convenience method to set the row count of the internal table widget.
+
+        Args:
+            count (int): The number of rows to set.
+        """
+        self.mdtable.setRowCount(count)
+
 
 class MdTreeWidget(QWidget):
     """
@@ -267,3 +276,9 @@ class MdTreeWidget(QWidget):
             self.mdtree.expandItem(child)
             if levels > 1:
                 self._expand_children_recursive(child, levels - 1)
+
+    def clear(self) -> None:
+        """
+        Convenience method to clear the internal tree widget.
+        """
+        self.mdtree.clear()

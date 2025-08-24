@@ -32,7 +32,7 @@ dependencies = [
     "superqt",
     "scikit-image",
     "pyqtgraph",
-    "czitools>=0.10.3"
+    "czitools>=0.11.0"
 ]
 
 [project.optional-dependencies]
@@ -120,5 +120,5 @@ exclude = [
     "*_vendor*",
 ]
 
-target-version = "py310"
+target-version = "py312"
 fix = true
