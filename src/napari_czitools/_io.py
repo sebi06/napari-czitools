@@ -190,7 +190,8 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
     channel_layers = []
 
-    # get the planes
+    # get the subset planes that were used aka {"S": (0,0), "T": (0,3), "C": (0,1), "Z": (0,4)}
+    # it will always contain STCZ even if the original CZI file has no scenes to ensure consistency
     subset_planes = array6d.attrs["subset_planes"]
 
     # loop over all channels
@@ -218,7 +219,7 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
         rgb = "#" + metadata.channelinfo.colors[ch_index][3:]
         ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
 
-        # guess an appropriate scaling from the display setting embedded in the CZI
+        # try to read the display settings embedded in the CZI
         try:
             lower = np.round(
                 metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch],
@@ -237,10 +238,11 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
         # simple validity check
         if lower >= higher:
-            logger.warning("Fancy Display Scaling detected. Use Defaults")
+            logger.warning("Invalid Display Scaling detected. Use Defaults")
             lower = 0
             higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 
+        # create a Channel layer and add it to the list of layers
         chl = ChannelLayer(
             sub_array=sub_array,
             metadata=metadata,
