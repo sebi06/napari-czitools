@@ -120,7 +120,7 @@ class CziReaderWidget(QWidget):
         # self.mdtable.setStyleSheet("border: 1px solid red;")
         self.mdtable.setMinimumHeight(400)  # Set minimum height for the table
         self.mdtable.update_metadata({})
-        self.mdtable.update_style(font_bold=False, font_size=6)
+        self.mdtable.update_style(font_bold=False, font_size=8)
 
         self.mdtree = MdTreeWidget(show_type_column=self.show_type_column)
         # self.mdtree.setStyleSheet("border: 1px solid red;")
@@ -222,6 +222,7 @@ class CziReaderWidget(QWidget):
         with contextlib.suppress(Exception):  # Catch any conversion errors
             md_dict_table = _convert_numpy_types(md_dict_table)
 
+        # update the table with the metadata
         self.mdtable.update_metadata(md_dict_table)
 
         # Update sliders based on metadata
