@@ -297,16 +297,17 @@ class CziReaderWidget(QWidget):
             self.main_layout.update()
 
     def _mdwidget_changed(self):
+        """Callback for when the metadata display combo box changes."""
         # Remove the current widget
         self.main_layout.removeWidget(self.current_md_widget)
         self.current_md_widget.hide()
 
-        # Toggle to the other widget
-        if self.current_md_widget == self.mdtable:
+        # Switch to the appropriate widget based on the combo box value
+        if self.mdata_widget.value == "Tree":
             self.current_md_widget = self.mdtree
             # Show the type column checkbox when tree is selected
             self.type_column_checkbox.show()
-        else:
+        else:  # Table or any other value defaults to table
             self.current_md_widget = self.mdtable
             # Hide the type column checkbox when table is selected
             self.type_column_checkbox.hide()
