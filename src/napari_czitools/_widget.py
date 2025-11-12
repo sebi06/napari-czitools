@@ -120,7 +120,7 @@ class CziReaderWidget(QWidget):
         # self.mdtable.setStyleSheet("border: 1px solid red;")
         self.mdtable.setMinimumHeight(400)  # Set minimum height for the table
         self.mdtable.update_metadata({})
-        self.mdtable.update_style(font_bold=False, font_size=6)
+        self.mdtable.update_style(font_bold=False, font_size=8)
 
         self.mdtree = MdTreeWidget(show_type_column=self.show_type_column)
         # self.mdtree.setStyleSheet("border: 1px solid red;")
@@ -222,6 +222,7 @@ class CziReaderWidget(QWidget):
         with contextlib.suppress(Exception):  # Catch any conversion errors
             md_dict_table = _convert_numpy_types(md_dict_table)
 
+        # update the table with the metadata
         self.mdtable.update_metadata(md_dict_table)
 
         # Update sliders based on metadata
@@ -297,16 +298,17 @@ class CziReaderWidget(QWidget):
             self.main_layout.update()
 
     def _mdwidget_changed(self):
+        """Callback for when the metadata display combo box changes."""
         # Remove the current widget
         self.main_layout.removeWidget(self.current_md_widget)
         self.current_md_widget.hide()
 
-        # Toggle to the other widget
-        if self.current_md_widget == self.mdtable:
+        # Switch to the appropriate widget based on the combo box value
+        if self.mdata_widget.value == "Tree":
             self.current_md_widget = self.mdtree
             # Show the type column checkbox when tree is selected
             self.type_column_checkbox.show()
-        else:
+        else:  # Table or any other value defaults to table
             self.current_md_widget = self.mdtable
             # Hide the type column checkbox when table is selected
             self.type_column_checkbox.hide()
