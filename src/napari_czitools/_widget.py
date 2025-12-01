@@ -58,6 +58,9 @@ class CziReaderWidget(QWidget):
         self.show_type_column = show_type_column
 
         self.sliders = SliderType(sliders)
+        self.scenes_consistent = (
+            True  # Flag to track if scenes have consistent shapes
+        )
 
         # create a layout
         self.main_layout = QVBoxLayout()
@@ -69,7 +72,9 @@ class CziReaderWidget(QWidget):
 
         # define filter based on file extension
         model_extension = "*.czi"
-        self.filename_edit = FileEdit(mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension)
+        self.filename_edit = FileEdit(
+            mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension
+        )
         file_layout.addWidget(self.filename_edit.native)
         self.filename_edit.line_edit.changed.connect(self._file_changed)
 
@@ -89,7 +94,9 @@ class CziReaderWidget(QWidget):
         # Add checkbox for type column visibility
         self.type_column_checkbox = QCheckBox("Show Type Column")
         self.type_column_checkbox.setChecked(self.show_type_column)
-        self.type_column_checkbox.stateChanged.connect(self._type_column_changed)
+        self.type_column_checkbox.stateChanged.connect(
+            self._type_column_changed
+        )
         # Initially hide the checkbox since default display is Table
         self.type_column_checkbox.hide()
         mdcombo_layout.addWidget(self.type_column_checkbox)
@@ -127,14 +134,18 @@ class CziReaderWidget(QWidget):
         self.mdtree.setMinimumHeight(400)  # Set minimum height for the table
 
         self.current_md_widget = self.mdtable
-        self.spacer_item = QSpacerItem(100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
+        self.spacer_item = QSpacerItem(
+            100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding
+        )
 
         # Add all widgets to the main layout
         self.main_layout.addLayout(file_layout)  # Add FileDialog section
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
         self.main_layout.addLayout(slider_layout)  # Add Slider Type section
 
-        self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
+        self.main_layout.addWidget(
+            self.mdtable
+        )  # Add the native Qt widget of the table
         self.main_layout.addItem(self.spacer_item)
         self.main_layout.addWidget(self.load_pixeldata.native)
 
@@ -207,16 +218,26 @@ class CziReaderWidget(QWidget):
         try:
             self.metadata = CziMetadata(filepath)
         except (FileNotFoundError, ValueError, OSError) as e:
-            logger.error("Failed to load metadata from file %s: %s", filepath, str(e))
+            logger.error(
+                "Failed to load metadata from file %s: %s", filepath, str(e)
+            )
             return
 
+        # check if scenes have identical shapes
+        scenes_consistent = self.metadata.scene_shape_is_consistent
+        self.scenes_consistent = scenes_consistent
+
         # create a nested dictionary for the tree and a reduced dictionary for the table
-        md_dict_tree = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
+        md_dict_tree = czimd.create_md_dict_nested(
+            self.metadata, sort=True, remove_none=True
+        )
         # drop certain entries
         md_dict_tree.pop("bbox", None)
         self.mdtree.setData(md_dict_tree, expandlevel=0, hideRoot=True)
 
-        md_dict_table = czimd.create_md_dict_red(self.metadata, sort=True, remove_none=True)
+        md_dict_table = czimd.create_md_dict_red(
+            self.metadata, sort=True, remove_none=True
+        )
 
         # Convert all numpy values to native Python types for better display
         with contextlib.suppress(Exception):  # Catch any conversion errors
@@ -246,8 +267,13 @@ class CziReaderWidget(QWidget):
                     slider.max_slider.max = size_value - 1
 
                     # Set the values
-                    slider.min_slider.value = 0
-                    slider.max_slider.value = size_value - 1
+                    # For scenes with inconsistent shapes, set both to first scene (0)
+                    if size_attr == "SizeS" and not self.scenes_consistent:
+                        slider.min_slider.value = 0
+                        slider.max_slider.value = 0
+                    else:
+                        slider.min_slider.value = 0
+                        slider.max_slider.value = size_value - 1
 
                     # Enable the slider after setting up the range
                     slider.enabled = True
@@ -260,6 +286,10 @@ class CziReaderWidget(QWidget):
                     slider.max_slider.max = 0
                     slider.min_slider.value = 0
                     slider.max_slider.value = 0
+
+            # Constrain scene slider if scenes are inconsistent
+            if not self.scenes_consistent:
+                self.scene_slider.lock_values(0, 0)
 
             # Enable the load pixel data button
             self.load_pixeldata.enabled = True
@@ -276,9 +306,14 @@ class CziReaderWidget(QWidget):
                     slider.setMinimum(0)
                     slider.setMaximum(size_value - 1)
 
-                    # Set the actual slider positions to span the full range
-                    slider.setLow(0)
-                    slider.setHigh(size_value - 1)
+                    # Set the actual slider positions
+                    # For scenes with inconsistent shapes, set both handles to first scene (0)
+                    if size_attr == "SizeS" and not self.scenes_consistent:
+                        slider.setLow(0)
+                        slider.setHigh(0)
+                    else:
+                        slider.setLow(0)
+                        slider.setHigh(size_value - 1)
 
                     # Enable the slider after setting up the range
                     slider.setEnabled(True)
@@ -290,6 +325,10 @@ class CziReaderWidget(QWidget):
                     slider.setMaximum(0)
                     slider.setLow(0)
                     slider.setHigh(0)
+
+            # Constrain scene slider if scenes are inconsistent
+            if not self.scenes_consistent:
+                self.scene_slider.setProperty("single_value_mode", True)
 
             # Enable the load pixel data button
             self.load_pixeldata.enabled = True
@@ -327,7 +366,12 @@ class CziReaderWidget(QWidget):
 
     def _reset_range_sliders(self):
         """Reset all range sliders to default state when file changes."""
-        slider_list = [self.scene_slider, self.time_slider, self.channel_slider, self.z_slider]
+        slider_list = [
+            self.scene_slider,
+            self.time_slider,
+            self.channel_slider,
+            self.z_slider,
+        ]
 
         if self.sliders == SliderType.TwoSliders:
             for slider in slider_list:
@@ -353,6 +397,19 @@ class CziReaderWidget(QWidget):
                 slider.setLow(0)
                 slider.setHigh(0)
                 slider.setVisible(True)  # Ensure visibility is reset
+
+    def _constrain_scene_slider(self):
+        """Constrain scene slider to single value selection if scenes are inconsistent."""
+        if not self.scenes_consistent:
+            if self.sliders == SliderType.TwoSliders:
+                # For TwoSliders, disable the max slider or sync them
+                # We'll make the sliders read-only by disabling interaction
+                self.scene_slider.min_slider.setEnabled(True)
+                self.scene_slider.max_slider.setEnabled(False)
+            elif self.sliders == SliderType.DoubleRangeSlider:
+                # For DoubleRangeSlider, we'll sync the handles
+                # so only single value can be selected
+                self.scene_slider.setProperty("single_value_mode", True)
 
     def _type_column_changed(self):
         """Callback for when the type column checkbox changes."""
@@ -432,7 +489,12 @@ class CziReaderWidget(QWidget):
 
     def _remove_existing_sliders(self):
         """Remove existing sliders from layout and delete them."""
-        slider_names = ["scene_slider", "time_slider", "channel_slider", "z_slider"]
+        slider_names = [
+            "scene_slider",
+            "time_slider",
+            "channel_slider",
+            "z_slider",
+        ]
 
         for slider_name in slider_names:
             if hasattr(self, slider_name):
@@ -506,11 +568,21 @@ class CziReaderWidget(QWidget):
                     slider.min_slider.max = size_value - 1
                     slider.max_slider.min = 0
                     slider.max_slider.max = size_value - 1
-                    slider.min_slider.value = 0
-                    slider.max_slider.value = size_value - 1
+
+                    # For scenes with inconsistent shapes, set both to first scene (0)
+                    if size_attr == "SizeS" and not self.scenes_consistent:
+                        slider.min_slider.value = 0
+                        slider.max_slider.value = 0
+                    else:
+                        slider.min_slider.value = 0
+                        slider.max_slider.value = size_value - 1
                     slider.enabled = True
                 else:
                     slider.enabled = False
+
+            # Constrain scene slider if scenes are inconsistent
+            if not self.scenes_consistent:
+                self.scene_slider.lock_values(0, 0)
 
         elif self.sliders == SliderType.DoubleRangeSlider:
             for size_attr, slider in slider_mapping.items():
@@ -518,9 +590,19 @@ class CziReaderWidget(QWidget):
                 if size_value is not None and size_value > 1:
                     slider.setMinimum(0)
                     slider.setMaximum(size_value - 1)
-                    slider.setLow(0)
-                    slider.setHigh(size_value - 1)
+
+                    # For scenes with inconsistent shapes, set both handles to first scene (0)
+                    if size_attr == "SizeS" and not self.scenes_consistent:
+                        slider.setLow(0)
+                        slider.setHigh(0)
+                    else:
+                        slider.setLow(0)
+                        slider.setHigh(size_value - 1)
                     slider.setEnabled(True)
                 else:
                     slider.setEnabled(False)
                     slider.setVisible(False)
+
+            # Constrain scene slider if scenes are inconsistent
+            if not self.scenes_consistent:
+                self.scene_slider.setProperty("single_value_mode", True)

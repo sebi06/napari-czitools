@@ -25,16 +25,29 @@ class RangeSliderWidget:
             Displays the widget container.
     """
 
-    def __init__(self, dimension_label="Time", min_value=0, max_value=0, readout=True, visible=True, enabled=True):
+    def __init__(
+        self,
+        dimension_label="Time",
+        min_value=0,
+        max_value=0,
+        readout=True,
+        visible=True,
+        enabled=True,
+    ):
         self.dimension_label = dimension_label
         self.min_value = min_value
         self.max_value = max_value
         self.readout = readout
         self.visible = visible
         self._enabled = enabled  # Store as private attribute
+        self._single_value_mode = (
+            False  # Flag to force both sliders to move together
+        )
 
         # Create widgets
-        self.range_label = Label(value=f"{dimension_label} Slices: {max_value - min_value + 1}")
+        self.range_label = Label(
+            value=f"{dimension_label} Slices: {max_value - min_value + 1}"
+        )
         self.min_slider = Slider(
             label="Min",
             min=min_value,
@@ -59,11 +72,53 @@ class RangeSliderWidget:
         self.max_slider.changed.connect(self.update_range)
 
         # Create container
-        self.container = Container(widgets=[self.range_label, self.min_slider, self.max_slider])
+        self.container = Container(
+            widgets=[self.range_label, self.min_slider, self.max_slider]
+        )
         self.container.visible = visible
         self.container.enabled = enabled
 
     def update_range(self):
+        # If in single value mode, keep min and max synchronized
+        if self._single_value_mode:
+            # When either slider changes, set both to the same value
+            min_val = self.min_slider.value
+            max_val = self.max_slider.value
+
+            # Determine which slider was moved by comparing to stored values
+            # Use whichever value is different from the stored value
+            if min_val != self.min_value:
+                # Min slider was moved, use its value
+                new_value = min_val
+            elif max_val != self.max_value:
+                # Max slider was moved, use its value
+                new_value = max_val
+            else:
+                # No change detected, keep current values
+                new_value = self.min_value
+
+            # Temporarily disconnect signals to avoid feedback loops
+            self.min_slider.changed.disconnect(self.update_range)
+            self.max_slider.changed.disconnect(self.update_range)
+
+            try:
+                if self.min_slider.value != new_value:
+                    self.min_slider.value = new_value
+                if self.max_slider.value != new_value:
+                    self.max_slider.value = new_value
+
+                # Update stored values for next comparison
+                self.min_value = new_value
+                self.max_value = new_value
+            finally:
+                # Reconnect signals
+                self.min_slider.changed.connect(self.update_range)
+                self.max_slider.changed.connect(self.update_range)
+
+            # Update label - always show 1 slice since min == max
+            self.range_label.value = f"{self.dimension_label} Slices: 1"
+            return
+
         min_val = self.min_slider.value
         max_val = self.max_slider.value
 
@@ -74,7 +129,9 @@ class RangeSliderWidget:
             self.min_slider.value = max_val
 
         # Update label
-        self.range_label.value = f"{self.dimension_label} Slices: {max_val - min_val + 1}"
+        self.range_label.value = (
+            f"{self.dimension_label} Slices: {max_val - min_val + 1}"
+        )
 
     @property
     def enabled(self):
@@ -88,6 +145,18 @@ class RangeSliderWidget:
         self.container.enabled = value
         self.min_slider.enabled = value
         self.max_slider.enabled = value
+
+    def lock_values(self, min_val: int, max_val: int):
+        """Enable single value mode where both sliders move together as one."""
+        self.min_value = min_val
+        self.max_value = max_val
+        self.min_slider.value = min_val
+        self.max_slider.value = max_val
+        self._single_value_mode = True
+
+    def unlock_values(self):
+        """Disable single value mode to allow independent min/max selection."""
+        self._single_value_mode = False
 
     @property
     def native(self):
