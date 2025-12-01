@@ -5,7 +5,7 @@
 * re-run test
 * Create a new release tag
 
-`git tag -a v0.0.4 -m "Release version 0.0.4 - ...."`
+`git tag -a v0.0.6 -m "Release version 0.0.6 - ...."`
 
 * Push the changes
 
