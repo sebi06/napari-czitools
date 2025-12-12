@@ -116,7 +116,7 @@ dependencies = [
     "superqt",
     "scikit-image",
     "pyqtgraph",
-    "czitools>=0.11.0,<0.11.2"
+    "czitools>=0.13.0,<0.20.0",  # pin to avoid threading deadlock in CI
 ]
 
 Tests and Local Debugging Tips

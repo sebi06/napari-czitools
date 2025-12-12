@@ -36,7 +36,7 @@ class MdTableWidget(QWidget):
     """
 
     def __init__(self) -> None:
-        super(QWidget, self).__init__()
+        super().__init__()
 
         self._explicitly_hidden = False
         self.label = "Metadata Table"
@@ -139,7 +139,7 @@ class MdTreeWidget(QWidget):
     """
 
     def __init__(self, data=None, expandlevel=0, show_type_column=True) -> None:
-        super(QWidget, self).__init__()
+        super().__init__()
 
         self._explicitly_hidden = False
         self.label = "Metadata Tree"
