@@ -37,9 +37,7 @@ def sample_colormap() -> Colormap:
 # (ChannelLayer and __init__ tests are correct, no changes needed)
 
 
-def test_channel_layer_initialization_with_defaults(
-    mock_xarray_data, mock_metadata_object, sample_colormap
-):
+def test_channel_layer_initialization_with_defaults(mock_xarray_data, mock_metadata_object, sample_colormap):
     layer = ChannelLayer(
         sub_array=mock_xarray_data,
         metadata=mock_metadata_object,
@@ -55,9 +53,7 @@ def test_channel_layer_initialization_with_defaults(
     assert layer.opacity == 0.85
 
 
-def test_channel_layer_initialization_with_custom_values(
-    mock_xarray_data, mock_metadata_object, sample_colormap
-):
+def test_channel_layer_initialization_with_custom_values(mock_xarray_data, mock_metadata_object, sample_colormap):
     layer = ChannelLayer(
         sub_array=mock_xarray_data,
         metadata=mock_metadata_object,
@@ -110,9 +106,7 @@ def test_czidataloader_init_custom_params():
 @patch("napari_czitools._io.process_channels")
 @patch("napari_czitools._io.read_tools.read_6darray")
 @patch("napari_czitools._io.napari.current_viewer")
-@patch(
-    "napari_czitools._io.MdTableWidget"
-)  # Change to actual widget being used
+@patch("napari_czitools._io.MdTableWidget")  # Change to actual widget being used
 def test_add_to_viewer_logic(
     mock_table_widget,
     mock_current_viewer,
@@ -140,10 +134,7 @@ def test_add_to_viewer_logic(
 
     # 2. --- Instantiate and Run ---
     loader = CZIDataLoader(
-        path="test.czi",
-        zoom=0.8,
-        use_dask=True,
-        show_metadata=MetadataDisplayMode.TABLE,
+        path="test.czi", zoom=0.8, use_dask=True, show_metadata=MetadataDisplayMode.TABLE, use_lazy=False
     )
     loader.add_to_viewer()
 
@@ -162,9 +153,7 @@ def test_add_to_viewer_logic(
     mock_table_widget.assert_called_once()
     mock_table_instance.update_metadata.assert_called_once()
     mock_table_instance.update_style.assert_called_once()
-    mock_viewer.window.add_dock_widget.assert_called_once_with(
-        mock_table_instance, name="MetadataTable", area="right"
-    )
+    mock_viewer.window.add_dock_widget.assert_called_once_with(mock_table_instance, name="MetadataTable", area="right")
 
     mock_viewer.add_image.assert_called_once_with(
         mock_channel.sub_array,

@@ -34,6 +34,7 @@ def reader_function_adv(
     use_xarray=True,
     planes: dict = None,
     show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
+    use_lazy: bool = True,
 ):
     """Take a path, add layers and metadata to the viewer.
 
@@ -76,6 +77,7 @@ def reader_function_adv(
         chunk_zyx=chunk_zyx,
         use_xarray=use_xarray,
         show_metadata=show_metadata,
+        use_lazy=use_lazy,
     )
 
     # add the data to the viewer

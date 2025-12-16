@@ -58,9 +58,7 @@ class CziReaderWidget(QWidget):
         self.show_type_column = show_type_column
 
         self.sliders = SliderType(sliders)
-        self.scenes_consistent = (
-            True  # Flag to track if scenes have consistent shapes
-        )
+        self.scenes_consistent = True  # Flag to track if scenes have consistent shapes
 
         # create a layout
         self.main_layout = QVBoxLayout()
@@ -72,9 +70,7 @@ class CziReaderWidget(QWidget):
 
         # define filter based on file extension
         model_extension = "*.czi"
-        self.filename_edit = FileEdit(
-            mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension
-        )
+        self.filename_edit = FileEdit(mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension)
         file_layout.addWidget(self.filename_edit.native)
         self.filename_edit.line_edit.changed.connect(self._file_changed)
 
@@ -94,9 +90,7 @@ class CziReaderWidget(QWidget):
         # Add checkbox for type column visibility
         self.type_column_checkbox = QCheckBox("Show Type Column")
         self.type_column_checkbox.setChecked(self.show_type_column)
-        self.type_column_checkbox.stateChanged.connect(
-            self._type_column_changed
-        )
+        self.type_column_checkbox.stateChanged.connect(self._type_column_changed)
         # Initially hide the checkbox since default display is Table
         self.type_column_checkbox.hide()
         mdcombo_layout.addWidget(self.type_column_checkbox)
@@ -134,20 +128,25 @@ class CziReaderWidget(QWidget):
         self.mdtree.setMinimumHeight(400)  # Set minimum height for the table
 
         self.current_md_widget = self.mdtable
-        self.spacer_item = QSpacerItem(
-            100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding
-        )
+        self.spacer_item = QSpacerItem(100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         # Add all widgets to the main layout
         self.main_layout.addLayout(file_layout)  # Add FileDialog section
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
         self.main_layout.addLayout(slider_layout)  # Add Slider Type section
 
-        self.main_layout.addWidget(
-            self.mdtable
-        )  # Add the native Qt widget of the table
+        self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
         self.main_layout.addItem(self.spacer_item)
-        self.main_layout.addWidget(self.load_pixeldata.native)
+        # Add the Load Pixel Data button together with a Lazy Loading checkbox
+        load_layout = QHBoxLayout()
+        load_layout.addWidget(self.load_pixeldata.native)
+
+        self.lazy_loading_checkbox = QCheckBox("Lazy Loading")
+        # default to True to preserve existing lazy-loading behavior
+        self.lazy_loading_checkbox.setChecked(False)
+        load_layout.addWidget(self.lazy_loading_checkbox)
+
+        self.main_layout.addLayout(load_layout)
 
         # Define Dimension slider configurations
         slider_configs = [
@@ -218,9 +217,7 @@ class CziReaderWidget(QWidget):
         try:
             self.metadata = CziMetadata(filepath)
         except (FileNotFoundError, ValueError, OSError) as e:
-            logger.error(
-                "Failed to load metadata from file %s: %s", filepath, str(e)
-            )
+            logger.error("Failed to load metadata from file %s: %s", filepath, str(e))
             return
 
         # check if scenes have identical shapes
@@ -228,16 +225,12 @@ class CziReaderWidget(QWidget):
         self.scenes_consistent = scenes_consistent
 
         # create a nested dictionary for the tree and a reduced dictionary for the table
-        md_dict_tree = czimd.create_md_dict_nested(
-            self.metadata, sort=True, remove_none=True
-        )
+        md_dict_tree = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
         # drop certain entries
         md_dict_tree.pop("bbox", None)
         self.mdtree.setData(md_dict_tree, expandlevel=0, hideRoot=True)
 
-        md_dict_table = czimd.create_md_dict_red(
-            self.metadata, sort=True, remove_none=True
-        )
+        md_dict_table = czimd.create_md_dict_red(self.metadata, sort=True, remove_none=True)
 
         # Convert all numpy values to native Python types for better display
         with contextlib.suppress(Exception):  # Catch any conversion errors
@@ -458,6 +451,7 @@ class CziReaderWidget(QWidget):
             self.filename_edit.value,
             zoom=1.0,
             planes=planes,
+            use_lazy=self.lazy_loading_checkbox.isChecked(),
             show_metadata=MetadataDisplayMode.NONE,
         )
 
