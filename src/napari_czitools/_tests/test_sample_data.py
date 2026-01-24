@@ -14,6 +14,13 @@ HEADLESS = (
     or os.environ.get("HEADLESS", "").lower() in ("true", "1", "yes")
 )
 
+# Check if user wants to force-test CZI reading despite threading issues
+FORCE_CZI_TESTS = os.environ.get("FORCE_CZI_TESTS", "").lower() in (
+    "true",
+    "1",
+    "yes",
+)
+
 # Check for problematic environment combination
 # The threading deadlock started occurring after Python 3.13 support was added (commit 7722ab1)
 # This changed dependency resolution and likely pulled in newer package versions with threading issues
@@ -26,7 +33,13 @@ def _detect_threading_issue_environment():
 
     Returns True if we should skip threading-heavy tests to avoid deadlocks.
     This is more precise than blanket CI detection.
+
+    Can be overridden by setting FORCE_CZI_TESTS=1 environment variable.
     """
+    # Allow user to force test even if threading issues are detected
+    if FORCE_CZI_TESTS:
+        return False
+
     # Only affects Linux environments
     if not sys.platform.startswith("linux"):
         return False
@@ -42,7 +55,10 @@ def _detect_threading_issue_environment():
 
         # Check for Ubuntu specifically (where the issue manifests)
         is_ubuntu = (
-            any(ubuntu_indicator in os.environ.get("RUNNER_OS", "").lower() for ubuntu_indicator in ["ubuntu", "linux"])
+            any(
+                ubuntu_indicator in os.environ.get("RUNNER_OS", "").lower()
+                for ubuntu_indicator in ["ubuntu", "linux"]
+            )
             or "ubuntu" in os.environ.get("IMAGEOS", "").lower()
         )
 
@@ -62,7 +78,9 @@ def _detect_threading_issue_environment():
 SKIP_THREADING_TESTS = _detect_threading_issue_environment()
 
 # More granular control: only skip the most problematic operations
-SKIP_VIEWER_OPERATIONS = SKIP_THREADING_TESTS  # Viewer creation can be problematic
+SKIP_VIEWER_OPERATIONS = (
+    SKIP_THREADING_TESTS  # Viewer creation can be problematic
+)
 SKIP_CZI_READING = SKIP_THREADING_TESTS  # CZI file reading is the main issue
 
 basedir = Path(__file__).resolve().parents[1] / "sample_data"
@@ -75,9 +93,6 @@ def _configure_threading_environment():
     This applies threading mitigations at runtime rather than skipping tests entirely.
     """
     if HEADLESS and sys.platform.startswith("linux"):
-        # Disable progress bars that can cause threading issues
-        os.environ["TQDM_DISABLE"] = "1"
-
         # Limit thread usage for libraries known to cause issues
         os.environ.setdefault("OMP_NUM_THREADS", "1")
         os.environ.setdefault("NUMBA_NUM_THREADS", "1")
@@ -96,7 +111,8 @@ _configure_threading_environment()
 
 
 @pytest.mark.skipif(
-    SKIP_VIEWER_OPERATIONS, reason="Viewer operations may cause threading issues in GitHub Actions Ubuntu environment"
+    SKIP_VIEWER_OPERATIONS,
+    reason="Viewer operations may cause threading issues in GitHub Actions Ubuntu environment",
 )
 @pytest.mark.timeout(120)  # 2 minute timeout for individual tests
 @pytest.mark.parametrize(
@@ -197,7 +213,9 @@ def test_io(czifile: str, make_napari_viewer) -> None:
             print(f"Successfully loaded {czifile} with viewer")
         except (AttributeError, RuntimeError, ImportError) as e:
             # If viewer creation fails, fall back to headless testing
-            print(f"Viewer creation failed ({e}), falling back to headless test")
+            print(
+                f"Viewer creation failed ({e}), falling back to headless test"
+            )
 
             from czitools.read_tools import read_tools
 
@@ -240,9 +258,9 @@ def test_basic_plugin_functionality_linux_ci() -> None:
     """
 
     # Test that we can import all main components
+    from napari_czitools import napari_get_reader
     from napari_czitools._io import CZIDataLoader
     from napari_czitools._metadata_widget import MetadataDisplayMode
-    from napari_czitools import napari_get_reader
 
     # Test that sample data files exist
     test_files = [

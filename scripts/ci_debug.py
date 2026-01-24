@@ -4,11 +4,10 @@ Prints environment variables and package versions helpful when debugging CI issu
 such as the Linux threading deadlock involving CZI reading and progress bars.
 """
 
-import os
-import sys
-import platform
 import importlib
-from textwrap import indent
+import os
+import platform
+import sys
 
 
 def print_heading(title):
@@ -33,7 +32,6 @@ def print_env():
         "GITHUB_REPOSITORY",
         "QT_QPA_PLATFORM",
         "DISPLAY",
-        "TQDM_DISABLE",
         "OMP_NUM_THREADS",
         "NUMBA_NUM_THREADS",
         "MKL_NUM_THREADS",
@@ -54,8 +52,10 @@ def version_of(module_name):
     try:
         m = importlib.import_module(module_name)
         return getattr(m, "__version__", str(m))
-    except Exception as e:
-        return f"not installed ({e})"
+    except ImportError:
+        return "not installed"
+    except AttributeError:
+        return "installed but no __version__"
 
 
 def print_packages():
@@ -66,7 +66,6 @@ def print_packages():
         "numpy",
         "czitools",
         "pylibczirw",
-        "tqdm",
         "numba",
         "pyqt5",
         "pyqt6",

@@ -111,7 +111,6 @@ Run the test suite (local):
    On POSIX shells:
        export QT_QPA_PLATFORM=offscreen
        export DISPLAY=:99
-       export TQDM_DISABLE=1
        export OMP_NUM_THREADS=1
        export NUMBA_NUM_THREADS=1
 
@@ -120,16 +119,16 @@ CI Quirk: Threading Deadlock on Linux (introduced when Python 3.13 added)
 ### Background:
 
 - The repository historically supported Python >=3.10, <3.13 without issues. After changing to support Python 3.13, GitHub Actions (Ubuntu) began experiencing intermittent infinite hangs during tests that exercise reading CZI files and creating Napari viewers.
-- Root cause is not a Python interpreter bug but a dependency resolution change: allowing 3.13 in pyproject.toml changed the dependency set pulled from PyPI, which introduced a combination of package versions (notably in imaging I/O/optimised libraries and czitools) that interact poorly in headless Linux CI, resulting in a threading deadlock around progress bars and subblock metadata reading.
+- Root cause is not a Python interpreter bug but a dependency resolution change: allowing 3.13 in pyproject.toml changed the dependency set pulled from PyPI, which introduced a combination of package versions (notably in imaging I/O/optimised libraries and czitools) that interact poorly in headless Linux CI, resulting in threading deadlock issues around subblock metadata reading.
 
 ### Symptoms:
 
-- CI test jobs on ubuntu-latest hang indefinitely or until timeout on tests that call into CZI reading or use progress bars.
+- CI test jobs on ubuntu-latest hang indefinitely or until timeout on tests that call into CZI reading.
 - Locally, Windows/macOS and Linux with older pinned dependencies may not reproduce the issue.
 
 ### Mitigations in repo (what we already do):
 
-- tox.ini sets TQDM_DISABLE=1, QT_QPA_PLATFORM=offscreen, OMP_NUM_THREADS=1, and NUMBA_NUM_THREADS=1 for linux envs.
+- tox.ini sets QT_QPA_PLATFORM=offscreen, OMP_NUM_THREADS=1, and NUMBA_NUM_THREADS=1 for linux envs.
 - Tests include detection logic to detect headless Linux CI and skip or run reduced replacement/basic tests when the problematic environment is detected. This is a pragmatic short-term mitigation while the dependency root cause is investigated.
 
 ### How to reproduce/troubleshoot locally:
@@ -140,7 +139,6 @@ CI Quirk: Threading Deadlock on Linux (introduced when Python 3.13 added)
        export GITHUB_ACTIONS=true
        export QT_QPA_PLATFORM=offscreen
        export DISPLAY=:99
-       export TQDM_DISABLE=1
        export OMP_NUM_THREADS=1
        export NUMBA_NUM_THREADS=1
        python -m tox -e py313-linux
@@ -160,9 +158,9 @@ CI Quirk: Threading Deadlock on Linux (introduced when Python 3.13 added)
 Recommended path to support Python 3.13 without CI flakes:
 
 1. Add 3.13 to the CI matrix (already done) but iterate on dependencies: run the CI matrix locally (or in a dedicated ephemeral runner) and capture failing tests.
-2. Narrow down which package versions changed between the previously-working state and now (e.g., czitools, numpy, pylibczirw, tqdm, numba, pyqtgraph), and try pinning them in pyproject.toml to confirmed working ranges.
+2. Narrow down which package versions changed between the previously-working state and now (e.g., czitools, numpy, pylibczirw, numba, pyqtgraph), and try pinning them in pyproject.toml to confirmed working ranges.
 3. Open a small PR to pin suspect packages temporarily to a version that is known to work while the upstream bug is fixed in the dependency.
-4. Alternatively, apply runtime mitigations (already added in tests) that keep threads limited and disable progress bars in headless CI.
+4. Alternatively, apply runtime mitigations (already added in tests) that keep threads limited in headless CI.
 
 ### Example pinning strategy (temporary): in pyproject.toml:
 
@@ -199,6 +197,24 @@ PR Checklist (suggested)
 - [ ] CI green or documented mitigations
 - [ ] Version bump in pyproject.toml (if releasing)
 - [ ] Update CHANGELOG.md (if present)
+
+### Testing CZI Sample Reading
+
+The CZI file reading tests are automatically skipped on Linux headless/CI environments due to threading deadlock issues. To test sample reading locally:
+
+**On macOS or Windows (no skip):**
+```bash
+pytest src/napari_czitools/_tests/test_sample_data.py::test_io -v
+pytest src/napari_czitools/_tests/test_sample_data.py::test_open_sample -v
+```
+
+**On Linux (force test despite threading issues):**
+```bash
+FORCE_CZI_TESTS=1 pytest src/napari_czitools/_tests/test_sample_data.py::test_io -v
+FORCE_CZI_TESTS=1 pytest src/napari_czitools/_tests/test_sample_data.py::test_open_sample -v
+```
+
+**Note:** Setting `FORCE_CZI_TESTS=1` may cause the test process to hang or crash on Linux due to known threading deadlock issues with aicspylibczi/czitools. This is expected and not a problem with the plugin code itself.
 
 ### Notes for Copilot / Contributors
 
