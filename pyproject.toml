@@ -14,7 +14,7 @@ classifiers = [
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
     "Operating System :: Unix",
-    #"Operating System :: MacOS",
+    "Operating System :: MacOS",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
@@ -39,10 +39,11 @@ dependencies = [
 [project.optional-dependencies]
 testing = [
     "tox",
-    "pytest",  # https://docs.pytest.org/en/latest/contents.html
-    "pytest-cov",  # https://pytest-cov.readthedocs.io/en/latest/
-    "pytest-qt",  # https://pytest-qt.readthedocs.io/en/latest/
-    "pytest-timeout",  # https://pypi.org/project/pytest-timeout/
+    "pytest",
+    "pytest-cov",
+    "pytest-qt",
+    "pytest-timeout",
+    "pytest-forked",  # Required to prevent CZI + Qt Abort crashes on Linux
     "napari",
     "pyqt5",
 ]
@@ -69,11 +70,9 @@ where = ["src"]
 [tool.setuptools.package-data]
 "napari_czitools" = ["*.yaml"]
 
-
 [tool.setuptools_scm]
 write_to = "src/napari_czitools/_version.py"
 fallback_version = "0.0.1+nogit"
-
 
 [tool.black]
 line-length = 79
@@ -82,7 +81,7 @@ target-version = ['py310', 'py311', 'py312']
 [tool.ruff]
 line-length = 79
 lint.select = [
-    "E", "F", "W", #flake8
+    "E", "F", "W", # flake8
     "UP", # pyupgrade
     "I", # isort
     "BLE", # flake8-blind-exception
@@ -95,37 +94,20 @@ lint.select = [
     "SIM", # flake8-simplify
 ]
 lint.ignore = [
-    "E501", # line too long. let black handle this
-    "UP006", "UP007", # type annotation. As using magicgui require runtime type annotation then we disable this.
-    "SIM117", # flake8-simplify - some of merged with statements are not looking great with black, reanble after drop python 3.9
+    "E501",
+    "UP006", "UP007",
+    "SIM117",
 ]
-
 exclude = [
-    ".bzr",
-    ".direnv",
-    ".eggs",
-    ".git",
-    ".mypy_cache",
-    ".pants.d",
-    ".ruff_cache",
-    ".svn",
-    ".tox",
-    ".venv",
-    "__pypackages__",
-    "_build",
-    "buck-out",
-    "build",
-    "dist",
-    "node_modules",
-    "venv",
-    "*vendored*",
-    "*_vendor*",
+    ".git", ".tox", "build", "dist", "venv",
 ]
-
 target-version = "py312"
 fix = true
 
 [tool.pytest.ini_options]
+# --forked ensures each test runs in its own process,
+# preventing the C++ library from conflicting with a previously loaded Qt environment.
+addopts = "--forked -v --color=yes"
 markers = [
     "qtbot: mark test as requiring Qt (uses pytest-qt)",
     "network: mark test as requiring network access"
