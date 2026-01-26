@@ -59,7 +59,7 @@ class CZIDataLoader:
     show_metadata : bool, optional
         Whether to display metadata information. Default is False.
     use_lazy : bool, optional
-        Whether to use lazy loading for the image data. Default is False.
+        Whether to use lazy loading for the image data. Default is True.
     Methods
     -------
     add_to_viewer():
@@ -75,7 +75,7 @@ class CZIDataLoader:
         use_xarray: bool = True,
         planes: dict = None,
         show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
-        use_lazy: bool = False,
+        use_lazy: bool = True,
     ) -> None:
         self.path: str = path
         self.zoom: float = zoom
@@ -129,22 +129,34 @@ class CZIDataLoader:
             # try new way of reading CZI data using lazy loading and dask arrays
             metadata = czimd.CziMetadata(self.path)
             array6d, dims, num_stacks = read_tools.read_stacks(
-                self.path, use_dask=self.use_dask, use_xarray=self.use_xarray, stack_scenes=True, planes=self.planes
+                self.path,
+                use_dask=self.use_dask,
+                use_xarray=self.use_xarray,
+                stack_scenes=True,
+                planes=self.planes,
             )
 
         if self.show_metadata == MetadataDisplayMode.TREE:
             # logger.info("Creating Metadata Tree")
-            md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
+            md_dict = czimd.create_md_dict_nested(
+                metadata, sort=True, remove_none=True
+            )
             mdtree = MdTreeWidget(data=md_dict, expandlevel=0)
-            viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
+            viewer.window.add_dock_widget(
+                mdtree, name="MetadataTree", area="right"
+            )
 
         if self.show_metadata == MetadataDisplayMode.TABLE:
             # logger.info("Creating Metadata Table")
-            md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
+            md_dict = czimd.create_md_dict_red(
+                metadata, sort=True, remove_none=True
+            )
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
             mdtable.update_style()
-            viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
+            viewer.window.add_dock_widget(
+                mdtable, name="MetadataTable", area="right"
+            )
 
         if self.show_metadata == MetadataDisplayMode.NONE:
             # logger.info("No Metadata Display")
@@ -205,7 +217,9 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
         # get the scaling factors for that channel and adapt Z-axis scaling
         scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio["zx_sf"]
+        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
+            "zx_sf"
+        ]
 
         # remove the last scaling factor in case of an RGB image
         if "A" in sub_array.dims:
@@ -231,7 +245,9 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
                 0,
             )
         except IndexError:
-            logger.warning("Calculation from display setting from CZI failed. Use 0-Max instead.")
+            logger.warning(
+                "Calculation from display setting from CZI failed. Use 0-Max instead."
+            )
             lower = 0
             higher = metadata.maxvalue[ch]
 
