@@ -43,7 +43,7 @@ testing = [
     "pytest-cov",
     "pytest-qt",
     "pytest-timeout",
-    "pytest-forked",  # Required to prevent CZI + Qt Abort crashes on Linux
+    "pytest-forked",  # Required to trying prevent CZI + Qt Abort crashes on some Linux systems
     "napari",
     "pyqt5",
 ]
@@ -105,9 +105,9 @@ target-version = "py312"
 fix = true
 
 [tool.pytest.ini_options]
-# --forked ensures each test runs in its own process,
-# preventing the C++ library from conflicting with a previously loaded Qt environment.
-addopts = "--forked -v --color=yes"
+# Note: --forked is Linux-specific and configured in tox.ini for Linux environments
+# On Windows, run pytest directly without --forked flag
+addopts = "-v --color=yes"
 markers = [
     "qtbot: mark test as requiring Qt (uses pytest-qt)",
     "network: mark test as requiring network access"

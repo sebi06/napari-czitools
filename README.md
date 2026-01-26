@@ -144,6 +144,26 @@ Feedback is always welcome!
 Contributions are very welcome. Tests can be run with [tox], please ensure
 the coverage at least stays the same before you submit a pull request.
 
+### Running Tests
+
+**Windows/macOS:**
+```bash
+pytest
+```
+
+**Linux (recommended - use tox):**
+```bash
+tox -e py311-linux
+```
+(Replace `py311` with your Python version: `py310`, `py312`, or `py313`)
+
+**Linux (direct pytest):**
+```bash
+pytest -v --forked --color=yes
+```
+
+Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by running each test in its own process. This flag is not available on Windows.
+
 ## License
 
 Distributed under the terms of the [MIT] license,
