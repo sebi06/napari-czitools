@@ -143,7 +143,7 @@ class CziReaderWidget(QWidget):
 
         self.lazy_loading_checkbox = QCheckBox("Lazy Loading")
         # default to True to preserve existing lazy-loading behavior
-        self.lazy_loading_checkbox.setChecked(False)
+        self.lazy_loading_checkbox.setChecked(True)
         load_layout.addWidget(self.lazy_loading_checkbox)
 
         self.main_layout.addLayout(load_layout)
