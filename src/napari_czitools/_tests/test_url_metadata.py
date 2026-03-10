@@ -1,43 +1,67 @@
-"""
-Test URL metadata reading functionality for CZI files.
+"""Test URL metadata reading functionality for CZI files."""
 
-This test validates that the czitools library can successfully read metadata
-from CZI files hosted on URLs, specifically GitHub raw URLs.
-"""
+import time
 
 import pytest
 from czitools.metadata_tools.boundingbox import CziBoundingBox
 from czitools.metadata_tools.czi_metadata import CziMetadata
 
 
+def _create_url_metadata_with_retry(url: str, retries: int = 3, delay_seconds: float = 1.0) -> CziMetadata:
+    """Create URL metadata with retry and skip on transient network errors."""
+    last_error: Exception | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            return CziMetadata(url)
+        except RuntimeError as exc:
+            # czitools can raise a RuntimeError for transient header reads.
+            if "FileHeaderSegment" in str(exc):
+                last_error = exc
+            else:
+                raise
+        except OSError as exc:
+            # Network/file retrieval failures should not fail local CI runs.
+            last_error = exc
+
+        if attempt < retries:
+            time.sleep(delay_seconds)
+
+    pytest.skip("Skipping URL metadata test due to transient remote read failure: " f"{last_error}")
+
+
 class TestUrlMetadata:
     """Test class for URL-based CZI metadata operations."""
 
-    @pytest.fixture
+    @pytest.fixture(scope="class")
     def sample_url(self):
         """GitHub raw URL for a sample CZI file."""
         return "https://github.com/sebi06/napari-czitools/raw/main/src/napari_czitools/sample_data/CellDivision_T3_Z6_CH1_X300_Y200_DCV_ZSTD.czi"
 
-    def test_url_metadata_creation(self, sample_url):
+    @pytest.fixture(scope="class")
+    def sample_metadata(self, sample_url):
+        """Create sample URL metadata once to minimize network flakiness."""
+        return _create_url_metadata_with_retry(sample_url)
+
+    def test_url_metadata_creation(self, sample_metadata):
         """Test that CziMetadata can be created from a URL."""
-        mdata = CziMetadata(sample_url)
+        mdata = sample_metadata
 
         # Verify metadata object was created successfully
         assert mdata is not None
         assert isinstance(mdata, CziMetadata)
 
-    def test_url_metadata_has_bbox(self, sample_url):
+    def test_url_metadata_has_bbox(self, sample_metadata):
         """Test that metadata from URL contains bounding box information."""
-        mdata = CziMetadata(sample_url)
+        mdata = sample_metadata
 
         # Verify bounding box exists and is correct type
         assert hasattr(mdata, "bbox")
         assert mdata.bbox is not None
         assert isinstance(mdata.bbox, CziBoundingBox)
 
-    def test_url_metadata_total_bounding_box(self, sample_url):
+    def test_url_metadata_total_bounding_box(self, sample_metadata):
         """Test that total_bounding_box is accessible and properly formatted."""
-        mdata = CziMetadata(sample_url)
+        mdata = sample_metadata
 
         # Verify total_bounding_box exists and is a dictionary
         assert mdata.bbox.total_bounding_box is not None
@@ -52,9 +76,9 @@ class TestUrlMetadata:
             assert isinstance(bbox[dim], tuple), f"Dimension '{dim}' should be a tuple"
             assert len(bbox[dim]) == 2, f"Dimension '{dim}' should have 2 values (min, max)"
 
-    def test_url_metadata_specific_dimensions(self, sample_url):
+    def test_url_metadata_specific_dimensions(self, sample_metadata):
         """Test specific dimension values match expected sample data."""
-        mdata = CziMetadata(sample_url)
+        mdata = sample_metadata
         bbox = mdata.bbox.total_bounding_box
 
         # Test specific dimensions based on filename expectations
@@ -65,9 +89,9 @@ class TestUrlMetadata:
         assert bbox["X"][1] == 300, f"Expected X dimension max of 300, got {bbox['X'][1]}"
         assert bbox["Y"][1] == 200, f"Expected Y dimension max of 200, got {bbox['Y'][1]}"
 
-    def test_url_metadata_dimension_access(self, sample_url):
+    def test_url_metadata_dimension_access(self, sample_metadata):
         """Test that individual dimensions can be accessed without errors."""
-        mdata = CziMetadata(sample_url)
+        mdata = sample_metadata
         bbox = mdata.bbox.total_bounding_box
 
         # Test accessing each dimension
@@ -80,12 +104,12 @@ class TestUrlMetadata:
             assert max_val > min_val
 
     @pytest.mark.network
-    def test_url_metadata_network_dependency(self, sample_url):
+    def test_url_metadata_network_dependency(self, sample_metadata):
         """Test marked as requiring network access."""
         # This test is marked with @pytest.mark.network
         # It can be skipped in environments without network access
         # using: pytest -m "not network"
-        mdata = CziMetadata(sample_url)
+        mdata = sample_metadata
         assert mdata is not None
 
     # TODO: Adapt CziMetadata error handling
@@ -107,7 +131,7 @@ class TestUrlMetadataIntegration:
         # For now, we'll just verify the URL version works
         url = "https://github.com/sebi06/napari-czitools/raw/main/src/napari_czitools/sample_data/CellDivision_T3_Z6_CH1_X300_Y200_DCV_ZSTD.czi"
 
-        mdata = CziMetadata(url)
+        mdata = _create_url_metadata_with_retry(url)
         bbox = mdata.bbox.total_bounding_box
 
         # Verify basic structure is consistent

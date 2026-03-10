@@ -9,6 +9,7 @@ from napari_czitools._io import (
     ChannelLayer,
     CZIDataLoader,
     MetadataDisplayMode,
+    process_channels,
 )
 
 # ----------------- Pytest Fixtures -----------------
@@ -37,9 +38,7 @@ def sample_colormap() -> Colormap:
 # (ChannelLayer and __init__ tests are correct, no changes needed)
 
 
-def test_channel_layer_initialization_with_defaults(
-    mock_xarray_data, mock_metadata_object, sample_colormap
-):
+def test_channel_layer_initialization_with_defaults(mock_xarray_data, mock_metadata_object, sample_colormap):
     layer = ChannelLayer(
         sub_array=mock_xarray_data,
         metadata=mock_metadata_object,
@@ -55,9 +54,7 @@ def test_channel_layer_initialization_with_defaults(
     assert layer.opacity == 0.85
 
 
-def test_channel_layer_initialization_with_custom_values(
-    mock_xarray_data, mock_metadata_object, sample_colormap
-):
+def test_channel_layer_initialization_with_custom_values(mock_xarray_data, mock_metadata_object, sample_colormap):
     layer = ChannelLayer(
         sub_array=mock_xarray_data,
         metadata=mock_metadata_object,
@@ -110,9 +107,7 @@ def test_czidataloader_init_custom_params():
 @patch("napari_czitools._io.process_channels")
 @patch("napari_czitools._io.read_tools.read_6darray")
 @patch("napari_czitools._io.napari.current_viewer")
-@patch(
-    "napari_czitools._io.MdTableWidget"
-)  # Change to actual widget being used
+@patch("napari_czitools._io.MdTableWidget")  # Change to actual widget being used
 def test_add_to_viewer_logic(
     mock_table_widget,
     mock_current_viewer,
@@ -140,10 +135,7 @@ def test_add_to_viewer_logic(
 
     # 2. --- Instantiate and Run ---
     loader = CZIDataLoader(
-        path="test.czi",
-        zoom=0.8,
-        use_dask=True,
-        show_metadata=MetadataDisplayMode.TABLE,
+        path="test.czi", zoom=0.8, use_dask=True, show_metadata=MetadataDisplayMode.TABLE, use_lazy=False
     )
     loader.add_to_viewer()
 
@@ -162,9 +154,7 @@ def test_add_to_viewer_logic(
     mock_table_widget.assert_called_once()
     mock_table_instance.update_metadata.assert_called_once()
     mock_table_instance.update_style.assert_called_once()
-    mock_viewer.window.add_dock_widget.assert_called_once_with(
-        mock_table_instance, name="MetadataTable", area="right"
-    )
+    mock_viewer.window.add_dock_widget.assert_called_once_with(mock_table_instance, name="MetadataTable", area="right")
 
     mock_viewer.add_image.assert_called_once_with(
         mock_channel.sub_array,
@@ -175,3 +165,37 @@ def test_add_to_viewer_logic(
         gamma=0.85,
     )
     assert mock_viewer.dims.axis_labels == ("Z", "Y", "X")
+
+
+def test_process_channels_accepts_scene_list() -> None:
+    """process_channels should support a list of scene-level DataArrays."""
+    scene_0 = xr.DataArray(
+        np.random.randint(0, 100, (1, 1, 2, 2, 3, 4), dtype=np.uint16),
+        dims=("H", "T", "C", "Z", "Y", "X"),
+        attrs={"subset_planes": {"C": (0, 1)}},
+    )
+    scene_1 = xr.DataArray(
+        np.random.randint(0, 100, (1, 1, 2, 2, 3, 4), dtype=np.uint16),
+        dims=("H", "T", "C", "Z", "Y", "X"),
+        attrs={"subset_planes": {"C": (0, 1)}},
+    )
+
+    metadata = MagicMock()
+    metadata.scale.ratio = {"zx_sf": 2.0}
+    metadata.channelinfo.names = ["DAPI", "EGFP"]
+    metadata.channelinfo.colors = ["#FF0000FF", "#FF00FF00"]
+    metadata.channelinfo.clims = [(0.0, 1.0), (0.0, 1.0)]
+    metadata.maxvalue_list = [65535, 65535]
+    metadata.maxvalue = [65535, 65535]
+
+    layers = process_channels([scene_0, scene_1], metadata)
+
+    assert len(layers) == 4
+    assert [layer.name for layer in layers] == [
+        "DAPI_S0",
+        "EGFP_S0",
+        "DAPI_S1",
+        "EGFP_S1",
+    ]
+    # After selecting C, dims are (H, T, Z, Y, X), so Z is index 2.
+    assert layers[0].scale[2] == 2.0

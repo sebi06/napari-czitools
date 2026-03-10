@@ -147,7 +147,16 @@ class CziReaderWidget(QWidget):
             self.mdtable
         )  # Add the native Qt widget of the table
         self.main_layout.addItem(self.spacer_item)
-        self.main_layout.addWidget(self.load_pixeldata.native)
+        # Add the Load Pixel Data button together with a Lazy Loading checkbox
+        load_layout = QHBoxLayout()
+        load_layout.addWidget(self.load_pixeldata.native)
+
+        self.lazy_loading_checkbox = QCheckBox("Lazy Loading")
+        # default to True to preserve existing lazy-loading behavior
+        self.lazy_loading_checkbox.setChecked(True)
+        load_layout.addWidget(self.lazy_loading_checkbox)
+
+        self.main_layout.addLayout(load_layout)
 
         # Define Dimension slider configurations
         slider_configs = [
@@ -458,6 +467,7 @@ class CziReaderWidget(QWidget):
             self.filename_edit.value,
             zoom=1.0,
             planes=planes,
+            use_lazy=self.lazy_loading_checkbox.isChecked(),
             show_metadata=MetadataDisplayMode.NONE,
         )
 

@@ -34,6 +34,7 @@ def reader_function_adv(
     use_xarray=True,
     planes: dict = None,
     show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
+    use_lazy: bool = True,
 ):
     """Take a path, add layers and metadata to the viewer.
 
@@ -76,6 +77,7 @@ def reader_function_adv(
         chunk_zyx=chunk_zyx,
         use_xarray=use_xarray,
         show_metadata=show_metadata,
+        use_lazy=use_lazy,
     )
 
     # add the data to the viewer
@@ -92,20 +94,39 @@ def reader_function_adv(
 # See also: https://forum.image.sc/t/file-open-vs-open-sample-using-my-own-napari-plugin/111123/8?u=sebi06
 #
 def reader_function(
-    path: str, zoom=1.0, use_dask=False, chunk_zyx=False, use_xarray=True, planes: dict = None
+    path: str,
+    zoom=1.0,
+    use_dask=False,
+    chunk_zyx=False,
+    use_xarray=True,
+    planes: dict = None,
+    use_lazy: bool = True,
 ) -> list[LayerDataTuple]:
 
     sample_data = []
 
-    # return an array with dimension order STCZYX(A)
-    array6d, metadata = read_tools.read_6darray(
-        path,
-        use_dask=use_dask,
-        chunk_zyx=chunk_zyx,
-        zoom=zoom,
-        use_xarray=use_xarray,
-        planes=planes,
-    )
+    if not use_lazy:
+        # return an array with dimension order STCZYX(A)
+        array6d, metadata = read_tools.read_6darray(
+            path,
+            use_dask=use_dask,
+            chunk_zyx=chunk_zyx,
+            zoom=zoom,
+            use_xarray=use_xarray,
+            planes=planes,
+        )
+    else:
+        # Use lazy loading to avoid threading issues
+        from czitools.metadata_tools import czi_metadata as czimd
+
+        metadata = czimd.CziMetadata(path)
+        array6d, dims, num_stacks = read_tools.read_stacks(
+            path,
+            use_dask=use_dask,
+            use_xarray=use_xarray,
+            stack_scenes=True,
+            planes=planes,
+        )
 
     # get the channel layers
     channel_layers = process_channels(array6d, metadata)

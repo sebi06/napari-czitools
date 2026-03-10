@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import Optional
 
 import napari
 import numpy as np
@@ -59,6 +58,8 @@ class CZIDataLoader:
         means all planes will be read.
     show_metadata : bool, optional
         Whether to display metadata information. Default is False.
+    use_lazy : bool, optional
+        Whether to use lazy loading for the image data. Default is True.
     Methods
     -------
     add_to_viewer():
@@ -74,6 +75,7 @@ class CZIDataLoader:
         use_xarray: bool = True,
         planes: dict = None,
         show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
+        use_lazy: bool = True,
     ) -> None:
         self.path: str = path
         self.zoom: float = zoom
@@ -82,6 +84,7 @@ class CZIDataLoader:
         self.use_xarray: bool = use_xarray
         self.planes: dict = planes if planes is not None else {}
         self.show_metadata: MetadataDisplayMode = show_metadata
+        self.use_lazy: bool = use_lazy
 
     def add_to_viewer(self) -> None:
         """
@@ -107,41 +110,45 @@ class CZIDataLoader:
               scale, and gamma correction.
         """
         # get napari viewer from current process
-        viewer: Optional[napari.Viewer] = napari.current_viewer()
+        viewer: napari.Viewer | None = napari.current_viewer()
         if viewer is None:
             viewer = napari.Viewer()
 
-        # return an array with dimension order STCZYX(A)
-        array6d, metadata = read_tools.read_6darray(
-            self.path,
-            use_dask=self.use_dask,
-            chunk_zyx=self.chunk_zyx,
-            zoom=self.zoom,
-            use_xarray=self.use_xarray,
-            planes=self.planes,
-        )
+        if not self.use_lazy:
+            # return an array with dimension order STCZYX(A)
+            array6d, metadata = read_tools.read_6darray(
+                self.path,
+                use_dask=self.use_dask,
+                chunk_zyx=self.chunk_zyx,
+                zoom=self.zoom,
+                use_xarray=self.use_xarray,
+                planes=self.planes,
+            )
+
+        if self.use_lazy:
+            # try new way of reading CZI data using lazy loading and dask arrays
+            metadata = czimd.CziMetadata(self.path)
+            array6d, dims, num_stacks = read_tools.read_stacks(
+                self.path,
+                use_dask=self.use_dask,
+                use_xarray=self.use_xarray,
+                stack_scenes=True,
+                planes=self.planes,
+            )
 
         if self.show_metadata == MetadataDisplayMode.TREE:
             # logger.info("Creating Metadata Tree")
-            md_dict = czimd.create_md_dict_nested(
-                metadata, sort=True, remove_none=True
-            )
+            md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
             mdtree = MdTreeWidget(data=md_dict, expandlevel=0)
-            viewer.window.add_dock_widget(
-                mdtree, name="MetadataTree", area="right"
-            )
+            viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
 
         if self.show_metadata == MetadataDisplayMode.TABLE:
             # logger.info("Creating Metadata Table")
-            md_dict = czimd.create_md_dict_red(
-                metadata, sort=True, remove_none=True
-            )
+            md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
             mdtable.update_style()
-            viewer.window.add_dock_widget(
-                mdtable, name="MetadataTable", area="right"
-            )
+            viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
 
         if self.show_metadata == MetadataDisplayMode.NONE:
             # logger.info("No Metadata Display")
@@ -190,69 +197,78 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
     channel_layers = []
 
-    # get the subset planes that were used aka {"S": (0,0), "T": (0,3), "C": (0,1), "Z": (0,4)}
-    # it will always contain STCZ even if the original CZI file has no scenes to ensure consistency
-    subset_planes = array6d.attrs["subset_planes"]
+    # Newer czitools versions can return one DataArray per scene (as a list).
+    # Keep compatibility with both list and single-array return types.
+    stack_arrays = array6d if isinstance(array6d, list) else [array6d]
+    if len(stack_arrays) == 0:
+        return channel_layers
 
-    # loop over all channels
-    for ch in range(array6d.sizes["C"]):
+    for stack_index, stack_array in enumerate(stack_arrays):
 
-        # extract channel subarray
-        sub_array = array6d.sel(C=ch)
+        # get the subset planes that were used aka
+        # {"S": (0,0), "T": (0,3), "C": (0,1), "Z": (0,4)}
+        subset_planes = stack_array.attrs.get("subset_planes", {})
+        channel_start = subset_planes.get("C", (0, 0))[0]
 
-        # get the scaling factors for that channel and adapt Z-axis scaling
-        scalefactors = [1.0] * len(sub_array.shape)
-        scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
-            "zx_sf"
-        ]
+        # loop over all channels in the current stack
+        for ch in range(stack_array.sizes["C"]):
 
-        # remove the last scaling factor in case of an RGB image
-        if "A" in sub_array.dims:
-            # remove the A axis from the scaling factors
-            scalefactors.pop(sub_array.get_axis_num("A"))
+            # extract channel subarray by position to support string channel
+            # coordinates returned by newer czitools/xarray versions.
+            sub_array = stack_array.isel(C=ch)
 
-        # get colors and channel name
-        ch_index = subset_planes["C"][0] + ch
-        chname = metadata.channelinfo.names[ch_index]
+            # get the scaling factors for that channel and adapt Z-axis scaling
+            scalefactors = [1.0] * len(sub_array.shape)
+            scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio["zx_sf"]
 
-        # inside the CZI metadata_tools colors are defined as ARGB hexstring
-        rgb = "#" + metadata.channelinfo.colors[ch_index][3:]
-        ncmap = Colormap(["#000000", rgb], name="cm_" + chname)
+            # remove the last scaling factor in case of an RGB image
+            if "A" in sub_array.dims:
+                # remove the A axis from the scaling factors
+                scalefactors.pop(sub_array.get_axis_num("A"))
 
-        # try to read the display settings embedded in the CZI
-        try:
-            lower = np.round(
-                metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch],
-                0,
+            # get colors and channel name
+            ch_index = channel_start + ch
+            chname = metadata.channelinfo.names[ch_index]
+            layer_name = chname
+            if len(stack_arrays) > 1:
+                layer_name = f"{chname}_S{stack_index}"
+
+            # inside the CZI metadata_tools colors are defined as ARGB hexstring
+            rgb = "#" + metadata.channelinfo.colors[ch_index][3:]
+            ncmap = Colormap(["#000000", rgb], name="cm_" + layer_name)
+
+            # try to read the display settings embedded in the CZI
+            try:
+                lower = np.round(
+                    metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch],
+                    0,
+                )
+                higher = np.round(
+                    metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch],
+                    0,
+                )
+            except IndexError:
+                logger.warning("Calculation from display setting from CZI failed. " "Use 0-Max instead.")
+                lower = 0
+                higher = metadata.maxvalue[ch]
+
+            # simple validity check
+            if lower >= higher:
+                logger.warning("Invalid Display Scaling detected. Use Defaults")
+                lower = 0
+                higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
+
+            # create a Channel layer and add it to the list of layers
+            chl = ChannelLayer(
+                sub_array=sub_array,
+                metadata=metadata,
+                name=layer_name,
+                scale=scalefactors,
+                colormap=ncmap,
+                blending="additive",
+                opacity=0.85,
             )
-            higher = np.round(
-                metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch],
-                0,
-            )
-        except IndexError:
-            logger.warning(
-                "Calculation from display setting from CZI failed. Use 0-Max instead."
-            )
-            lower = 0
-            higher = metadata.maxvalue[ch]
 
-        # simple validity check
-        if lower >= higher:
-            logger.warning("Invalid Display Scaling detected. Use Defaults")
-            lower = 0
-            higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
-
-        # create a Channel layer and add it to the list of layers
-        chl = ChannelLayer(
-            sub_array=sub_array,
-            metadata=metadata,
-            name=chname,
-            scale=scalefactors,
-            colormap=ncmap,
-            blending="additive",
-            opacity=0.85,
-        )
-
-        channel_layers.append(chl)
+            channel_layers.append(chl)
 
     return channel_layers

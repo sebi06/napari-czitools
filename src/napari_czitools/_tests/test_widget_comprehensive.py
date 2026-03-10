@@ -446,6 +446,35 @@ class TestPixelDataLoading:
         assert filename == "test_file.czi"  # filename
         assert call_args[1]["planes"] == expected_planes
 
+    @patch("napari_czitools._widget.reader_function_adv")
+    def test_lazy_checkbox_default_and_reader_use_lazy(self, mock_reader, widget_with_double_sliders):
+        """Verify Lazy Loading checkbox default is checked and passed to reader."""
+        widget = widget_with_double_sliders
+
+        # Default checkbox should be present and checked
+        assert hasattr(widget, "lazy_loading_checkbox")
+        assert widget.lazy_loading_checkbox.isChecked() is True
+
+        # Mock file change prevention
+        widget._file_changed = Mock()
+
+        # Set filename property
+        test_filename = "test_file.czi"
+        type(widget.filename_edit).value = property(lambda self: test_filename)
+
+        # Press load button (checkbox is checked) -> use_lazy True
+        widget._loadbutton_pressed()
+        mock_reader.assert_called()
+        _, kwargs = mock_reader.call_args
+        assert kwargs.get("use_lazy", None) is True
+
+        # Now uncheck and press again
+        widget.lazy_loading_checkbox.setChecked(False)
+        widget._loadbutton_pressed()
+        # mock_reader should have been called again; inspect last call
+        _, kwargs2 = mock_reader.call_args
+        assert kwargs2.get("use_lazy", None) is False
+
 
 class TestSliderTypeChanges:
     """Test dynamic slider type changing functionality."""

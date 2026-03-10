@@ -1,5 +1,5 @@
 import os
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -23,25 +23,35 @@ def test_check_filepath_local_file_exists(mock_logger):
         result = check_filepath(filepath)
 
     assert result == local_path
-    mock_logger.info.assert_called_once_with(f"File: {local_path} exists. Start reading pixel data ...")
+    mock_logger.info.assert_called_once_with(
+        f"File: {local_path} exists. Start reading pixel data ..."
+    )
 
 
 def test_check_filepath_file_not_local_but_valid_url(mock_logger):
     filepath = "test_file.txt"
     github_url = os.path.join(GITHUB_BASE_URL, filepath)
 
-    with patch("os.path.exists", return_value=False), patch("validators.url", return_value=True):
+    with (
+        patch("os.path.exists", return_value=False),
+        patch("validators.url", return_value=True),
+    ):
         result = check_filepath(filepath)
 
     assert result == github_url
-    mock_logger.warning.assert_called_once_with("File does not exist locally. Trying to read from repo.")
+    mock_logger.warning.assert_called_once_with(
+        "File does not exist locally. Trying to read from repo."
+    )
 
 
 def test_check_filepath_invalid_url(mock_logger):
     filepath = "test_file.txt"
     github_url = os.path.join(GITHUB_BASE_URL, filepath)
 
-    with patch("os.path.exists", return_value=False), patch("validators.url", return_value=False):
+    with (
+        patch("os.path.exists", return_value=False),
+        patch("validators.url", return_value=False),
+    ):
         result = check_filepath(filepath)
 
     assert result is None
