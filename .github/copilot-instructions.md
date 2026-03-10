@@ -184,6 +184,24 @@ dependencies = [
 
 - If a test hangs, run with verbose logging and collect a thread dump (on Linux) to capture the state of threads.
 
+### Recent Changes and Lessons Learned
+
+- Dependency baseline now uses `czitools>=0.14.0`.
+- With newer `czitools`, lazy/stack reading may return a list of
+       `xarray.DataArray` objects (one per scene) instead of a single stack.
+       Code that processes arrays should accept both shapes.
+- Channel coordinates can be string labels (for example `DAPI`, `EGFP`).
+       Prefer positional indexing (`isel`) over label indexing (`sel`) when
+       iterating channels by integer index.
+- GUI tests depend on `pytest-qt`. Keep `pytest-qt` in testing dependencies,
+       and if unavailable, use skip-only fallbacks rather than hard failures.
+- Do not manually register `pytestqt.plugin` in `conftest.py` when it is
+       already auto-discovered, as this can cause duplicate plugin registration
+       errors.
+- URL metadata tests against remote assets can fail transiently with errors
+       like `Error reading FileHeaderSegment`. Prefer retry + graceful skip
+       behavior for network-dependent tests.
+
 ### Release Process
 
 1. Ensure pyproject.toml has the new version and requires-python appropriately set (supporting 3.13 is fine, but be conservative with transitive dependency pins if CI is unstable).

@@ -7,6 +7,13 @@ from _pytest.config import Config
 from _pytest.fixtures import FixtureRequest
 from qtpy.QtWidgets import QApplication
 
+try:
+    import pytestqt.plugin as _pytestqt_plugin  # noqa: F401
+except ImportError:
+    _HAS_PYTEST_QT = False
+else:
+    _HAS_PYTEST_QT = True
+
 
 def has_gui_support() -> bool:
     """Check if GUI is supported on the current platform.
@@ -22,9 +29,7 @@ def has_gui_support() -> bool:
         return True
     else:
         # Linux/Unix systems require DISPLAY or WAYLAND_DISPLAY
-        return bool(
-            os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
-        )
+        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
 
 
 # Environment constants
@@ -38,12 +43,20 @@ def pytest_configure(config: Config) -> None:
     Args:
         config: Pytest configuration object
     """
-    config.addinivalue_line(
-        "markers", "qtbot: mark test as requiring Qt (uses pytest-qt)"
-    )
-    config.addinivalue_line(
-        "markers", "network: mark test as requiring network access"
-    )
+    config.addinivalue_line("markers", "qtbot: mark test as requiring Qt (uses pytest-qt)")
+    config.addinivalue_line("markers", "network: mark test as requiring network access")
+
+
+if not _HAS_PYTEST_QT:
+
+    @pytest.fixture
+    def qtbot() -> Any:
+        """Provide a skip-only qtbot fixture when pytest-qt is unavailable.
+
+        Returns:
+            Any: This fixture always skips and does not return a value.
+        """
+        pytest.skip("pytest-qt is not installed or could not be imported")
 
 
 @pytest.fixture(autouse=True)

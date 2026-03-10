@@ -146,6 +146,15 @@ the coverage at least stays the same before you submit a pull request.
 
 ### Running Tests
 
+Install test dependencies first (recommended for full local coverage):
+
+```bash
+pip install -e ".[testing]"
+```
+
+This installs `pytest-qt`, which provides the `qtbot` fixture used by
+napari/Qt tests.
+
 **Windows/macOS:**
 ```bash
 pytest
@@ -163,6 +172,19 @@ pytest -v --forked --color=yes
 ```
 
 Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by running each test in its own process. This flag is not available on Windows.
+
+### Recent Compatibility Notes
+
+- `czitools>=0.14.0` is supported.
+- Newer `czitools` may return scene data as a list of xarray stacks when lazy
+  reading is enabled. The plugin now handles both single-stack and scene-list
+  outputs when creating channel layers.
+- Channel extraction uses positional indexing to support channel coordinates
+  represented by names (for example `"DAPI"`, `"EGFP"`) instead of numeric
+  labels.
+- URL metadata tests can be affected by transient remote read failures (for
+  example GitHub/network hiccups). The test suite retries and skips these
+  network-dependent checks if remote headers cannot be read reliably.
 
 ## License
 
