@@ -187,6 +187,10 @@ dependencies = [
 ### Recent Changes and Lessons Learned
 
 - Dependency baseline now uses `czitools>=0.14.0`.
+- `czitools==0.15.0` changed `read_tools.read_stacks` from returning
+       3 values to returning 4 values:
+       `(array6d, dims, num_stacks, metadata)`.
+       Keep compatibility by supporting both tuple lengths in reader code.
 - With newer `czitools`, lazy/stack reading may return a list of
        `xarray.DataArray` objects (one per scene) instead of a single stack.
        Code that processes arrays should accept both shapes.

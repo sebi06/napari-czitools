@@ -176,6 +176,10 @@ Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by ru
 ### Recent Compatibility Notes
 
 - `czitools>=0.14.0` is supported.
+- `czitools==0.15.0` changed `read_tools.read_stacks` to return
+  `(array6d, dims, num_stacks, metadata)`.
+- The plugin now supports both 3-value and 4-value `read_stacks`
+  return signatures for backward compatibility.
 - Newer `czitools` may return scene data as a list of xarray stacks when lazy
   reading is enabled. The plugin now handles both single-stack and scene-list
   outputs when creating channel layers.
