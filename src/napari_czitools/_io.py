@@ -15,6 +15,33 @@ from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
 logger = logging_tools.set_logging()
 
 
+def read_stacks_compat(
+    path: str,
+    use_dask: bool,
+    use_xarray: bool,
+    planes: dict,
+) -> tuple[object, czimd.CziMetadata]:
+    """Read stacks with compatibility across czitools return signatures."""
+    result = read_tools.read_stacks(
+        path,
+        use_dask=use_dask,
+        use_xarray=use_xarray,
+        stack_scenes=True,
+        planes=planes,
+    )
+
+    if len(result) == 4:
+        array6d, _dims, _num_stacks, metadata = result
+        return array6d, metadata
+
+    if len(result) == 3:
+        array6d, _dims, _num_stacks = result
+        metadata = czimd.CziMetadata(path)
+        return array6d, metadata
+
+    raise ValueError(f"Unexpected read_stacks return length: {len(result)}")
+
+
 @dataclass
 class ChannelLayer:
     """
@@ -126,13 +153,11 @@ class CZIDataLoader:
             )
 
         if self.use_lazy:
-            # try new way of reading CZI data using lazy loading and dask arrays
-            metadata = czimd.CziMetadata(self.path)
-            array6d, dims, num_stacks = read_tools.read_stacks(
+            # Read stacks with compatibility for multiple czitools versions.
+            array6d, metadata = read_stacks_compat(
                 self.path,
                 use_dask=self.use_dask,
                 use_xarray=self.use_xarray,
-                stack_scenes=True,
                 planes=self.planes,
             )
 
