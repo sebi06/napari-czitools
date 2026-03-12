@@ -90,3 +90,5 @@ src/experimental/**
 napari-czitools/src/experimental/**
 napari-czitools/experimental/**
 /.vscode/
+/.github/prompts.txt
+/.github/pr_decriptions

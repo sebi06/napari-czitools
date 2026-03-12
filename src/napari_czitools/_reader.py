@@ -4,7 +4,7 @@ from napari.types import LayerDataTuple
 
 from napari_czitools._metadata_widget import MetadataDisplayMode
 
-from ._io import CZIDataLoader, process_channels
+from ._io import CZIDataLoader, process_channels, read_stacks_compat
 
 logger = logging_tools.set_logging()
 
@@ -116,15 +116,11 @@ def reader_function(
             planes=planes,
         )
     else:
-        # Use lazy loading to avoid threading issues
-        from czitools.metadata_tools import czi_metadata as czimd
-
-        metadata = czimd.CziMetadata(path)
-        array6d, dims, num_stacks = read_tools.read_stacks(
+        # Use a compatibility wrapper for czitools return-signature changes.
+        array6d, metadata = read_stacks_compat(
             path,
             use_dask=use_dask,
             use_xarray=use_xarray,
-            stack_scenes=True,
             planes=planes,
         )
 
