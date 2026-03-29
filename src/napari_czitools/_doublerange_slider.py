@@ -1,33 +1,64 @@
-# the code for this widegt is inspired by:
-# https://github.com/sleepbysleep/range_slider_for_Qt5_and_PyQt5/blob/master/pyqt5_ranger_slider/range_slider.py
-#
-# https://www.mail-archive.com/pyqt@riverbankcomputing.com/msg22889.html
+"""Range slider widgets using superqt's multi-handle slider components.
+
+This module provides range slider widgets for selecting a range of values
+(or a single value as a degenerate range like 3-3) using superqt's
+QRangeSlider and QLabeledRangeSlider instead of a custom QSlider subclass.
+"""
+
+import types
+from typing import Any, Sequence
 
 from qtpy.QtCore import Qt, Signal
-from qtpy.QtGui import QColor, QPainter
 from qtpy.QtWidgets import (
-    QApplication,
     QHBoxLayout,
     QLabel,
     QSlider,
-    QStyle,
-    QStyleOptionSlider,
     QVBoxLayout,
     QWidget,
 )
+from superqt import QLabeledRangeSlider, QRangeSlider
+
+
+def _allow_handle_overlap(slider: QRangeSlider) -> None:
+    """Patch a QRangeSlider to allow handles at the same position.
+
+    By default superqt's ``QRangeSlider`` enforces a minimum distance
+    of ``singleStep()`` between adjacent handles.  This prevents
+    single-value selection (e.g. setting both handles to 3 to extract
+    a single frame).  The patch replaces the internal
+    ``_neighbor_bound`` method with one that uses zero minimum distance
+    so both handles can occupy the same value.
+
+    Args:
+        slider: The QRangeSlider instance to patch.  For a
+            ``QLabeledRangeSlider`` pass its ``._slider`` attribute.
+    """
+
+    def _neighbor_bound(self: QRangeSlider, val: float, index: int) -> float:
+        # Allow handles to sit at the same position (zero gap)
+        # instead of enforcing singleStep() separation.
+        _lst = self._position
+        if index > 0:
+            val = max(_lst[index - 1], val)
+        if index < (len(_lst) - 1):
+            val = min(_lst[index + 1], val)
+        return val
+
+    slider._neighbor_bound = types.MethodType(_neighbor_bound, slider)  # type: ignore[attr-defined]
 
 
 class LabeledDoubleRangeSliderWidget(QWidget):
-    """A complete widget that includes both label and double range slider with unified visibility control.
+    """A widget with dimension label, QLabeledRangeSlider, and slice readout.
 
-    This widget combines a DoubleRangeSlider with optional label and readout display,
-    providing a complete UI component for range selection with visual feedback.
+    Uses superqt's QLabeledRangeSlider internally for the dual-handle
+    range selection, adding a dimension label and a slice count readout.
 
     Attributes:
-        valueChanged: Signal emitted when slider values change, passes (low, high) values
+        valueChanged: Signal emitted when slider values change,
+            passes (low, high) values.
     """
 
-    valueChanged = Signal(int, int)  # Signal to emit low and high values
+    valueChanged = Signal(int, int)
 
     def __init__(
         self,
@@ -42,13 +73,13 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         """Initialize the labeled double range slider widget.
 
         Args:
-            dimension_label: Label text for the slider
-            min_value: Minimum value for the slider range
-            max_value: Maximum value for the slider range
-            enabled: Whether the slider is enabled for interaction
-            readout: Whether to show slice count readout
-            visible: Whether the widget is initially visible
-            show_label: Whether to show the dimension label
+            dimension_label: Label text for the slider.
+            min_value: Minimum value for the slider range.
+            max_value: Maximum value for the slider range.
+            enabled: Whether the slider is enabled for interaction.
+            readout: Whether to show slice count readout.
+            visible: Whether the widget is initially visible.
+            show_label: Whether to show the dimension label.
         """
         super().__init__()
 
@@ -56,31 +87,26 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         self.show_label: bool = show_label
         self.readout_enabled: bool = readout
 
-        # Initialize slider values
         self._low: int = min_value
         self._high: int = max_value
+        self._single_value_mode: bool = False
+        self._updating: bool = False
 
-        # Create the main layout
         layout = QVBoxLayout()
 
-        # Create and add the label if requested
         if show_label:
-            self.label = QLabel(f"{dimension_label} Slider (Range: {min_value}-{max_value})")
+            self.label = QLabel(f"{dimension_label} Slider" f" (Range: {min_value}-{max_value})")
             layout.addWidget(self.label)
 
-        # Create horizontal layout for slider and readout
         slider_layout = QHBoxLayout()
 
-        # Create the slider
-        self.slider = DoubleRangeSlider(
-            dimension_label=dimension_label,
-            min_value=min_value,
-            max_value=max_value,
-            enabled=enabled,
-        )
+        self.slider = QLabeledRangeSlider(Qt.Horizontal)
+        _allow_handle_overlap(self.slider._slider)
+        self.slider.setMinimum(min_value)
+        self.slider.setMaximum(max_value)
+        self.slider.setValue((min_value, max_value))
         slider_layout.addWidget(self.slider)
 
-        # Create the readout label if requested
         if readout:
             self.readout_label = QLabel()
             self.readout_label.setMinimumWidth(80)
@@ -93,20 +119,34 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         layout.setContentsMargins(0, 0, 0, 0)
         self.setLayout(layout)
 
-        # Set overall visibility and enabled state
         self.setVisible(visible)
         self.setEnabled(enabled)
 
-        # Connect slider signals
         self.slider.valueChanged.connect(self._on_value_changed)
 
-    def _on_value_changed(self, low: int, high: int) -> None:
-        """Handle value changes from the slider.
+    def _on_value_changed(self, values: tuple[int, ...]) -> None:
+        """Handle value changes from the QLabeledRangeSlider.
 
         Args:
-            low: New low value from the slider
-            high: New high value from the slider
+            values: Tuple of (low, high) from the slider.
         """
+        if self._updating:
+            return
+
+        low, high = int(values[0]), int(values[1])
+
+        if self._single_value_mode and low != high:
+            new_val = low if low != self._low else high
+            self._low = new_val
+            self._high = new_val
+            self._updating = True
+            self.slider.setValue((new_val, new_val))
+            self._updating = False
+            if self.readout_enabled:
+                self.update_readout()
+            self.valueChanged.emit(new_val, new_val)
+            return
+
         self._low = low
         self._high = high
         if self.readout_enabled:
@@ -114,43 +154,30 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         self.valueChanged.emit(low, high)
 
     def update_readout(self) -> None:
-        """
-        Updates the readout and label text for the slider widget.
+        """Update the readout label and dimension label text.
 
-        If readout is enabled and the readout label exists, updates the readout label to display the current slice count.
-        If the label is shown and exists, updates the label to display the dimension label and the current slider range.
-
-        Returns:
-            None
+        If readout is enabled, updates the readout label to display the
+        current slice count.  If the label is shown, updates it with
+        the current slider range.
         """
         if self.readout_enabled and hasattr(self, "readout_label"):
             slice_count = self.slice_count()
             self.readout_label.setText(f"Slices: {slice_count}")
         if self.show_label and hasattr(self, "label"):
-            self.label.setText(f"{self.dimension_label} Slider (Range: {self._low}-{self._high})")
+            self.label.setText(f"{self.dimension_label} Slider" f" (Range: {self._low}-{self._high})")
 
     def update_label(self) -> None:
-        """
-        Updates the label text to display the current slider range.
-
-        If the label is set to be shown and exists as an attribute, this method retrieves
-        the current minimum and maximum values of the slider and updates the label text
-        to reflect the dimension label and the current range.
-
-        Returns:
-            None
-        """
+        """Update the dimension label with current min/max range."""
         if self.show_label and hasattr(self, "label"):
             min_val = self.minimum()
             max_val = self.maximum()
-            self.label.setText(f"{self.dimension_label} Slider (Range: {min_val}-{max_val})")
+            self.label.setText(f"{self.dimension_label} Slider" f" (Range: {min_val}-{max_val})")
 
-    # Slider value methods
     def low(self) -> int:
         """Get the current low value.
 
         Returns:
-            Current low value of the slider
+            Current low value of the slider.
         """
         return self._low
 
@@ -158,16 +185,21 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         """Set the low value of the slider.
 
         Args:
-            low: New low value to set
+            low: New low value to set.
         """
         self._low = low
-        self.slider.setLow(low)
+        self._updating = True
+        self.slider.setValue((low, self._high))
+        self._updating = False
+        if self.readout_enabled:
+            self.update_readout()
+        self.valueChanged.emit(self._low, self._high)
 
     def high(self) -> int:
         """Get the current high value.
 
         Returns:
-            Current high value of the slider
+            Current high value of the slider.
         """
         return self._high
 
@@ -175,42 +207,46 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         """Set the high value of the slider.
 
         Args:
-            high: New high value to set
+            high: New high value to set.
         """
         self._high = high
-        self.slider.setHigh(high)
+        self._updating = True
+        self.slider.setValue((self._low, high))
+        self._updating = False
+        if self.readout_enabled:
+            self.update_readout()
+        self.valueChanged.emit(self._low, self._high)
 
     def slice_count(self) -> int:
-        """Return the number of slices: max - min + 1.
+        """Return the number of slices: high - low + 1.
 
         Returns:
-            Number of slices in the current range
+            Number of slices in the current range.
         """
         return self._high - self._low + 1
 
-    # Widget control methods
     def setEnabled(self, enabled: bool) -> None:
         """Set the enabled state of the widget and its slider.
 
         Args:
-            enabled: Whether the widget should be enabled
+            enabled: Whether the widget should be enabled.
         """
         super().setEnabled(enabled)
         self.slider.setEnabled(enabled)
 
     def setVisible(self, visible: bool) -> None:
-        """Set the visibility of the entire labeled slider widget.
+        """Set the visibility of the entire widget.
 
-        Arg:
-            visible: Whether the widget should be visible
+        Args:
+            visible: Whether the widget should be visible.
         """
         super().setVisible(visible)
 
-    def setTickPosition(self, position) -> None:
+    def setTickPosition(self, position: QSlider.TickPosition) -> None:
         """Set the tick position for the slider.
 
         Args:
-            position: Tick position constant from QSlider
+            position: Tick position constant from QSlider.
         """
         self.slider.setTickPosition(position)
 
@@ -218,7 +254,7 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         """Get the minimum value of the slider.
 
         Returns:
-            Minimum value of the slider range
+            Minimum value of the slider range.
         """
         return self.slider.minimum()
 
@@ -226,7 +262,7 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         """Get the maximum value of the slider.
 
         Returns:
-            Maximum value of the slider range
+            Maximum value of the slider range.
         """
         return self.slider.maximum()
 
@@ -234,7 +270,7 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         """Set the minimum value of the slider.
 
         Args:
-            minimum: New minimum value for the slider
+            minimum: New minimum value for the slider.
         """
         self.slider.setMinimum(minimum)
 
@@ -242,43 +278,50 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         """Set the maximum value of the slider.
 
         Args:
-            maximum: New maximum value for the slider
+            maximum: New maximum value for the slider.
         """
         self.slider.setMaximum(maximum)
 
     def setSingleValueMode(self, enabled: bool) -> None:
-        """Set the slider to single value mode (both handles move together).
+        """Set the slider to single value mode.
+
+        When enabled, both handles move together so only a single
+        value can be selected (e.g. 3-3).
 
         Args:
-            enabled: Whether to enable single value mode
+            enabled: Whether to enable single value mode.
         """
-        self.slider.single_value_mode = enabled
+        self._single_value_mode = enabled
 
-    def setProperty(self, name: str, value) -> None:
+    def setProperty(self, name: str, value: Any) -> None:
         """Override setProperty to handle custom properties.
 
+        Intercepts ``"single_value_mode"`` to toggle single-value
+        mode; all other property names are forwarded to QWidget.
+
         Args:
-            name: Property name
-            value: Property value
+            name: Property name.
+            value: Property value.
         """
         if name == "single_value_mode":
-            self.setSingleValueMode(value)
+            self.setSingleValueMode(bool(value))
         else:
             super().setProperty(name, value)
 
 
-class DoubleRangeSlider(QSlider):
-    """A slider widget with dual handles for selecting a range of values.
+class DoubleRangeSlider(QWidget):
+    """A dual-handle range slider using superqt's QRangeSlider.
 
-    This custom slider allows users to select both minimum and maximum values
-    within a range using two draggable handles. The handles are color-coded:
-    blue for the minimum value and red for the maximum value.
+    This wraps QRangeSlider to provide a backwards-compatible API with
+    named low/high accessors and a valueChanged signal that emits two
+    individual int arguments.
 
     Attributes:
-        valueChanged: Signal emitted when either handle value changes, passes (low, high) values
+        valueChanged: Signal emitted when handle values change,
+            passes (low, high).
     """
 
-    valueChanged = Signal(int, int)  # Signal to emit low and high values
+    valueChanged = Signal(int, int)
 
     def __init__(
         self,
@@ -287,62 +330,60 @@ class DoubleRangeSlider(QSlider):
         max_value: int = 10,
         enabled: bool = True,
     ) -> None:
-        """Initialize the double range slider."""
-        super().__init__(Qt.Horizontal)
+        """Initialize the double range slider.
+
+        Args:
+            dimension_label: Label for the slider dimension.
+            min_value: Minimum value for the slider range.
+            max_value: Maximum value for the slider range.
+            enabled: Whether the slider is enabled for interaction.
+        """
+        super().__init__()
 
         self.dimension_label: str = dimension_label
+        self.single_value_mode: bool = False
         self._low: int = min_value
         self._high: int = max_value
-        self.single_value_mode: bool = False  # Flag to enforce single value selection
+        self._updating: bool = False
 
-        self.setMinimum(min_value)
-        self.setMaximum(max_value)
+        self._slider = QRangeSlider(Qt.Horizontal)
+        _allow_handle_overlap(self._slider)
+        self._slider.setMinimum(min_value)
+        self._slider.setMaximum(max_value)
+        self._slider.setValue((min_value, max_value))
+
+        layout = QVBoxLayout()
+        layout.setContentsMargins(0, 0, 0, 0)
+        layout.addWidget(self._slider)
+        self.setLayout(layout)
         self.setEnabled(enabled)
 
-        self.pressed_control: QStyle.SubControl = QStyle.SC_None
-        self.hover_control: QStyle.SubControl = QStyle.SC_None
-        self.click_offset: int = 0
-        self.active_slider: int = 0  # 0 for low, 1 for high, -1 for both
+        self._slider.valueChanged.connect(self._on_values_changed)
 
-    def style(self):
-        """Return a style proxy that exposes QStyle constants as attributes.
+    def _on_values_changed(self, values: tuple[int, ...]) -> None:
+        """Handle value changes from the internal QRangeSlider.
 
-        Tests sometimes access `slider.style().SC_SliderHandle` etc.; the real
-        QStyle object doesn't expose these as attributes on some bindings, so
-        provide a proxy that maps those attribute names to the QStyle constants
-        while delegating methods to the real style object.
+        Args:
+            values: Tuple of (low, high) values from QRangeSlider.
         """
-        real = QApplication.style()
+        if self._updating:
+            return
 
-        class _StyleProxy:
-            def __init__(self, real):
-                self._real = real
+        low, high = int(values[0]), int(values[1])
 
-            def __getattr__(self, name):
-                # Expose common QStyle constants by name so tests and code can
-                # access them via the style() object.
-                const_map = {
-                    "SC_SliderHandle": QStyle.SC_SliderHandle,
-                    "SC_SliderGroove": QStyle.SC_SliderGroove,
-                    "SC_SliderTickmarks": QStyle.SC_SliderTickmarks,
-                    "SC_None": QStyle.SC_None,
-                    "CC_Slider": QStyle.CC_Slider,
-                    "State_Sunken": QStyle.State_Sunken,
-                }
-                if name in const_map:
-                    return const_map[name]
-                return getattr(self._real, name)
+        if self.single_value_mode and low != high:
+            new_val = low if low != self._low else high
+            self._low = new_val
+            self._high = new_val
+            self._updating = True
+            self._slider.setValue((new_val, new_val))
+            self._updating = False
+            self.valueChanged.emit(new_val, new_val)
+            return
 
-            def subControlRect(self, *args, **kwargs):
-                return self._real.subControlRect(*args, **kwargs)
-
-            def hitTestComplexControl(self, *args, **kwargs):
-                return self._real.hitTestComplexControl(*args, **kwargs)
-
-            def sliderValueFromPosition(self, *args, **kwargs):
-                return self._real.sliderValueFromPosition(*args, **kwargs)
-
-        return _StyleProxy(real)
+        self._low = low
+        self._high = high
+        self.valueChanged.emit(low, high)
 
     def low(self) -> int:
         """Get the current low value."""
@@ -351,7 +392,9 @@ class DoubleRangeSlider(QSlider):
     def setLow(self, low: int) -> None:
         """Set the low value of the slider."""
         self._low = low
-        self.update()
+        self._updating = True
+        self._slider.setValue((low, self._high))
+        self._updating = False
         self.valueChanged.emit(self._low, self._high)
 
     def high(self) -> int:
@@ -361,207 +404,48 @@ class DoubleRangeSlider(QSlider):
     def setHigh(self, high: int) -> None:
         """Set the high value of the slider."""
         self._high = high
-        self.update()
+        self._updating = True
+        self._slider.setValue((self._low, high))
+        self._updating = False
         self.valueChanged.emit(self._low, self._high)
 
-    def paintEvent(self, event) -> None:
-        """Custom paint event to draw the slider with dual colored handles."""
-        painter = QPainter(self)
-        style = QApplication.style()
+    def minimum(self) -> int:
+        """Get the minimum value."""
+        return self._slider.minimum()
 
-        # Draw the groove/track
-        opt = QStyleOptionSlider()
-        self.initStyleOption(opt)
-        opt.subControls = QStyle.SC_SliderGroove
-        # Use QSlider.NoTicks via QSlider class for tick comparison
-        if self.tickPosition() != QSlider.NoTicks:
-            opt.subControls |= QStyle.SC_SliderTickmarks
-        style.drawComplexControl(QStyle.CC_Slider, opt, painter, self)
+    def maximum(self) -> int:
+        """Get the maximum value."""
+        return self._slider.maximum()
 
-        # Draw the colored handles
-        for i, value in enumerate([self._low, self._high]):
-            opt = QStyleOptionSlider()
-            self.initStyleOption(opt)
-            opt.subControls = QStyle.SC_SliderHandle
+    def setMinimum(self, minimum: int) -> None:
+        """Set the minimum value."""
+        self._slider.setMinimum(minimum)
 
-            if self.pressed_control and ((self.active_slider == i) or (self.active_slider == -1)):
-                opt.activeSubControls = self.pressed_control
-                opt.state |= QStyle.State_Sunken
-            else:
-                opt.activeSubControls = self.hover_control
+    def setMaximum(self, maximum: int) -> None:
+        """Set the maximum value."""
+        self._slider.setMaximum(maximum)
 
-            opt.sliderPosition = value
-            opt.sliderValue = value
+    def setTickPosition(self, position: QSlider.TickPosition) -> None:
+        """Set the tick position."""
+        self._slider.setTickPosition(position)
 
-            handle_rect = style.subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
+    def tickPosition(self) -> QSlider.TickPosition:
+        """Get the tick position."""
+        return self._slider.tickPosition()
 
-            if not self.isEnabled():
-                painter.fillRect(handle_rect, QColor(128, 128, 128))
-            else:
-                if i == 0:  # Min slider - Blue
-                    painter.fillRect(handle_rect, QColor(0, 100, 255))
-                else:  # Max slider - Red
-                    painter.fillRect(handle_rect, QColor(255, 50, 50))
+    def setOrientation(self, orientation: Qt.Orientation) -> None:
+        """Set the slider orientation."""
+        self._slider.setOrientation(orientation)
 
-            painter.setPen(QColor(0, 0, 0))
-            painter.drawRect(handle_rect)
-
-    def mousePressEvent(self, event) -> None:
-        """Handle mouse press events."""
-        event.accept()
-        style = QApplication.style()
-        button = event.button()
-
-        if button:
-            opt = QStyleOptionSlider()
-            self.initStyleOption(opt)
-
-            # Get handle positions in pixels
-            handle_rects = []
-            for value in [self._low, self._high]:
-                opt.sliderPosition = value
-                handle_rects.append(style.subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self))
-
-            # When handles overlap, check if click is on the right half of the handle
-            # If yes, prefer the maximum handle
-            click_pos = event.pos().x()
-            if self._low == self._high and handle_rects[0].contains(event.pos()):
-                handle_center = handle_rects[0].center().x()
-                self.active_slider = 1 if click_pos >= handle_center else 0
-                self.pressed_control = QStyle.SC_SliderHandle
-                try:
-                    self.triggerAction(QSlider.SliderMove)
-                    self.setRepeatAction(QSlider.SliderNoAction)
-                except Exception:
-                    from qtpy.QtWidgets import QAbstractSlider
-
-                    self.triggerAction(QAbstractSlider.SliderMove)
-                    self.setRepeatAction(QAbstractSlider.SliderNoAction)
-                self.setSliderDown(True)
-                return
-
-            # Normal handle detection
-            self.active_slider = -1
-            for i, value in enumerate([self._low, self._high]):
-                opt.sliderPosition = value
-                hit = style.hitTestComplexControl(QStyle.CC_Slider, opt, event.pos(), self)
-                if hit == QStyle.SC_SliderHandle:
-                    self.active_slider = i
-                    self.pressed_control = hit
-                    try:
-                        self.triggerAction(QSlider.SliderMove)
-                        self.setRepeatAction(QSlider.SliderNoAction)
-                    except Exception:
-                        from qtpy.QtWidgets import QAbstractSlider
-
-                        self.triggerAction(QAbstractSlider.SliderMove)
-                        self.setRepeatAction(QAbstractSlider.SliderNoAction)
-                    self.setSliderDown(True)
-                    break
-
-            if self.active_slider < 0:
-                self.pressed_control = QStyle.SC_SliderHandle
-                self.click_offset = self.__pixelPosToRangeValue(self.__pick(event.pos()))
-                # Use QAbstractSlider enums via QSlider parent
-                try:
-                    self.triggerAction(QSlider.SliderMove)
-                    self.setRepeatAction(QSlider.SliderNoAction)
-                except Exception:
-                    # Fallback to QAbstractSlider constants if available
-                    from qtpy.QtWidgets import QAbstractSlider
-
-                    self.triggerAction(QAbstractSlider.SliderMove)
-                    self.setRepeatAction(QAbstractSlider.SliderNoAction)
-        else:
-            event.ignore()
-
-    def mouseMoveEvent(self, event) -> None:
-        """Handle mouse move events."""
-        if self.pressed_control != QStyle.SC_SliderHandle:
-            event.ignore()
-            return
-
-        event.accept()
-        new_pos = self.__pixelPosToRangeValue(self.__pick(event.pos()))
-
-        if self.single_value_mode:
-            # In single value mode, both handles move together
-            self._low = new_pos
-            self._high = new_pos
-        elif self.active_slider < 0:
-            # Moving both sliders simultaneously
-            offset = new_pos - self.click_offset
-            self._high += offset
-            self._low += offset
-
-            if self._low < self.minimum():
-                diff = self.minimum() - self._low
-                self._low += diff
-                self._high += diff
-            if self._high > self.maximum():
-                diff = self.maximum() - self._high
-                self._low += diff
-                self._high += diff
-        elif self.active_slider == 0:
-            # Moving low handle - allow it to match high value
-            if new_pos <= self._high:
-                self._low = new_pos
-        else:
-            # Moving high handle - allow it to match low value
-            if new_pos >= self._low:
-                self._high = new_pos
-
-        self.click_offset = new_pos
-        self.update()
-        self.valueChanged.emit(self._low, self._high)
-
-    def mouseReleaseEvent(self, event) -> None:
-        """Handle mouse release events."""
-        if event.button() == Qt.LeftButton:
-            self.pressed_control = QStyle.SC_None
-            self.active_slider = -1
-            self.setSliderDown(False)
-            self.update()
-        event.accept()
-
-    def __pick(self, pt) -> int:
-        """Extract the relevant coordinate from a point."""
-        if self.orientation() == Qt.Horizontal:
-            return pt.x()
-        else:
-            return pt.y()
-
-    def __pixelPosToRangeValue(self, pos: int) -> int:
-        """Convert pixel position to slider value."""
-        opt = QStyleOptionSlider()
-        self.initStyleOption(opt)
-        style = QApplication.style()
-
-        gr = style.subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderGroove, self)
-        sr = style.subControlRect(QStyle.CC_Slider, opt, QStyle.SC_SliderHandle, self)
-
-        if self.orientation() == Qt.Horizontal:
-            slider_length = sr.width()
-            slider_min = gr.x()
-            slider_max = gr.right() - slider_length + 1
-        else:
-            slider_length = sr.height()
-            slider_min = gr.y()
-            slider_max = gr.bottom() - slider_length + 1
-
-        return style.sliderValueFromPosition(
-            self.minimum(),
-            self.maximum(),
-            pos - slider_min,
-            slider_max - slider_min,
-            opt.upsideDown,
-        )
+    def orientation(self) -> Qt.Orientation:
+        """Get the slider orientation."""
+        return self._slider.orientation()
 
 
 if __name__ == "__main__":
     import sys
 
-    from qtpy.QtWidgets import QLabel, QPushButton, QVBoxLayout, QWidget
+    from qtpy.QtWidgets import QApplication, QPushButton
 
     def echo(low, high):
         print(f"Low: {low}, High: {high}")
@@ -569,14 +453,13 @@ if __name__ == "__main__":
     def toggle_visibility():
         """Toggle the visibility of the complete labeled slider."""
         labeled_slider.setVisible(not labeled_slider.isVisible())
-        toggle_button.setText(f"{'Show' if not labeled_slider.isVisible() else 'Hide'} Labeled Slider")
+        toggle_button.setText(f"{'Show' if not labeled_slider.isVisible() else 'Hide'}" " Labeled Slider")
 
     app = QApplication(sys.argv)
 
     min_value = 0
     max_value = 9
 
-    # Test the complete labeled slider widget
     labeled_slider = LabeledDoubleRangeSliderWidget(
         dimension_label="Time",
         min_value=min_value,
@@ -588,10 +471,8 @@ if __name__ == "__main__":
     )
     labeled_slider.setLow(min_value)
     labeled_slider.setHigh(max_value)
-    labeled_slider.setTickPosition(QSlider.TicksBelow)
     labeled_slider.valueChanged.connect(echo)
 
-    # Create a main widget
     widget = QWidget()
     layout = QVBoxLayout()
 
@@ -602,7 +483,5 @@ if __name__ == "__main__":
     layout.addWidget(toggle_button)
 
     widget.setLayout(layout)
-
     widget.show()
-    widget.raise_()
-    app.exec_()
+    sys.exit(app.exec_())

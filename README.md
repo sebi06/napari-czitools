@@ -101,17 +101,17 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 
 1) Select the CZI file to read its metadata
 2) Once the metadata are read the display can be toggled between a **table** and a **tree view**
-3) The metadata will update the dimension double-range sliders and enable reading the pixel data
+3) The metadata will update the dimension range sliders (powered by [superqt]'s `QLabeledRangeSlider`) and enable reading the pixel data
 
 <img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv1.png" alt="Advanced CZI Reader - Plugin" style="width:30%; height:auto;">
 
 1) Metadata will be shown as a **table** or as a **tree view**
 2) The **Load Pixel Data** button will be enabled once the metadata is read
-3) The **Dimension Sliders** will be enabled and allow to select an range to be read for all available dimensions
+3) The **Dimension Sliders** (using [superqt]'s dual-handle range slider) will be enabled and allow to select a range to be read for all available dimensions. Both handles can be set to the same value for single-slice selection (e.g. 3-3)
 
 <img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv2.png" alt="Advanced CZI Reader - Plugin" style="width:80%; height:auto;">
 
-- The dimensions slider allow to define size of CZI subset to be read
+- The dimension range sliders (from [superqt]) allow to define the size of a CZI subset to be read
 - This allows to read parts of a CZI image dataset
 - Important - when reading a subset the metadata will still reflects the size of the complete CZI
 
@@ -189,6 +189,14 @@ Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by ru
 - URL metadata tests can be affected by transient remote read failures (for
   example GitHub/network hiccups). The test suite retries and skips these
   network-dependent checks if remote headers cannot be read reliably.
+- The custom dual-handle `DoubleRangeSlider` has been replaced with wrappers
+  around [superqt]'s `QLabeledRangeSlider` and `QRangeSlider`, reducing
+  custom painting/mouse handling code and using a well-tested community
+  component. The public slider API (`low()`, `high()`, `setLow()`,
+  `setHigh()`, single-value mode) is unchanged.
+- A small internal patch (`_allow_handle_overlap`) is applied to every
+  superqt range slider so that both handles can sit on the same value,
+  enabling single-frame extraction (e.g. T=4-4 to read one timepoint).
 
 ## License
 
@@ -219,3 +227,4 @@ Version: 2025.08.20
 [pylibCZIrw]: https://pypi.org/project/pylibCZIrw/
 [MaxOS wheels for pylibCZIrw]: https://pypi.scm.io/#/package/pylibczirw
 [bioio-czi]: https://pypi.org/project/bioio-czi/
+[superqt]: https://pyapp-kit.github.io/superqt/
