@@ -205,6 +205,24 @@ dependencies = [
 - URL metadata tests against remote assets can fail transiently with errors
        like `Error reading FileHeaderSegment`. Prefer retry + graceful skip
        behavior for network-dependent tests.
+- The custom `DoubleRangeSlider` (hand-coded `QSlider` subclass with manual
+       `paintEvent` / `mousePressEvent` / `mouseMoveEvent`) has been replaced
+       with thin wrappers around **superqt**'s `QLabeledRangeSlider` and
+       `QRangeSlider`.  The public API (`low()`, `high()`, `setLow()`,
+       `setHigh()`, `valueChanged(int, int)`, `setSingleValueMode()`,
+       `setProperty("single_value_mode", ...)`) is unchanged, so all
+       consumers in `_widget.py` and tests work without modification.
+       `superqt` is already a declared dependency.
+- superqt's `QRangeSlider` enforces a minimum gap of `singleStep()`
+       between handles by default, which prevents single-frame extraction
+       (e.g. both handles at value 4).  The helper
+       `_allow_handle_overlap()` in `_doublerange_slider.py` patches the
+       internal `_neighbor_bound` method to use zero gap so handles can
+       sit on the same value.  This patch is applied to every slider
+       instance at construction time.
+- When modifying slider code, prefer using the superqt wrapper API in
+       `_doublerange_slider.py` rather than re-introducing custom QSlider
+       painting or mouse-event handling.
 
 ### Release Process
 
