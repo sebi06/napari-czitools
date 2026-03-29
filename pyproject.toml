@@ -9,7 +9,7 @@ authors = [
   {email = "sebrhode@gmail.com"},
 ]
 classifiers = [
-    "Development Status :: 3 - Beta",
+    "Development Status :: 4 - Beta",
     "Framework :: napari",
     "Intended Audience :: Developers",
     "License :: OSI Approved :: MIT License",
