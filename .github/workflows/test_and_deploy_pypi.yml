@@ -74,7 +74,6 @@ jobs:
         permissions:
             id-token: write # Required for PyPI trusted publisher (OIDC)
             contents: read # Required for actions/checkout
-            attestations: write # Required for artifact attestations
         steps:
             - uses: actions/checkout@v6
               with:
@@ -91,3 +90,6 @@ jobs:
               run: python -m build .
             - name: Publish to PyPI
               uses: pypa/gh-action-pypi-publish@release/v1
+              with:
+                  attestations: false
+                  verbose: true
