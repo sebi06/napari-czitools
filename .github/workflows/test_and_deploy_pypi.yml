@@ -73,6 +73,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') # Cleaner tag check
         permissions:
             id-token: write # Required for PyPI trusted publisher (OIDC)
+            contents: read # Required for actions/checkout
+            attestations: write # Required for artifact attestations
         steps:
             - uses: actions/checkout@v6
               with:
