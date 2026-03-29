@@ -8,6 +8,11 @@ on:
         branches: [main, npe2]
     workflow_dispatch:
 
+env:
+    # Force Node.js 24 for all actions (setup-qt-libs@v1 and headless-gui@v2
+    # have no Node 24 releases yet; this makes them run on Node 24 anyway)
+    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
     test:
         name: ${{ matrix.platform }} py${{ matrix.python-version }}
@@ -68,6 +73,8 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/v') # Cleaner tag check
         steps:
             - uses: actions/checkout@v6
+              with:
+                  fetch-depth: 0 # Full history so setuptools_scm can resolve the tag version
             - name: Set up Python
               uses: actions/setup-python@v6
               with:
