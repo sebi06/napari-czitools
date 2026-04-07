@@ -32,7 +32,7 @@ def reader_function_adv(
     use_dask=False,
     chunk_zyx=False,
     use_xarray=True,
-    planes: dict = None,
+    planes: dict | None = None,
     show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
     use_lazy: bool = True,
 ):
@@ -99,7 +99,7 @@ def reader_function(
     use_dask=False,
     chunk_zyx=False,
     use_xarray=True,
-    planes: dict = None,
+    planes: dict | None = None,
     use_lazy: bool = True,
 ) -> list[LayerDataTuple]:
 

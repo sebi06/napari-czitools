@@ -19,27 +19,30 @@ def read_stacks_compat(
     path: str,
     use_dask: bool,
     use_xarray: bool,
-    planes: dict,
+    planes: dict | None,
 ) -> tuple[object, czimd.CziMetadata]:
     """Read stacks with compatibility across czitools return signatures."""
-    result = read_tools.read_stacks(
-        path,
-        use_dask=use_dask,
-        use_xarray=use_xarray,
-        stack_scenes=True,
-        planes=planes,
+    # Convert to list so the type checker does not perform fixed-length
+    # tuple narrowing – older czitools returned 3 values, newer ones return 4.
+    parts: list[object] = list(
+        read_tools.read_stacks(
+            path,
+            use_dask=use_dask,
+            use_xarray=use_xarray,
+            stack_scenes=True,
+            planes=planes,
+        )
     )
 
-    if len(result) == 4:
-        array6d, _dims, _num_stacks, metadata = result
-        return array6d, metadata
+    if len(parts) == 4:
+        metadata = parts[3]
+        assert isinstance(metadata, czimd.CziMetadata)
+        return parts[0], metadata
 
-    if len(result) == 3:
-        array6d, _dims, _num_stacks = result
-        metadata = czimd.CziMetadata(path)
-        return array6d, metadata
+    if len(parts) == 3:
+        return parts[0], czimd.CziMetadata(path)
 
-    raise ValueError(f"Unexpected read_stacks return length: {len(result)}")
+    raise ValueError(f"Unexpected read_stacks return length: {len(parts)}")
 
 
 @dataclass
@@ -100,7 +103,7 @@ class CZIDataLoader:
         use_dask: bool = False,
         chunk_zyx: bool = False,
         use_xarray: bool = True,
-        planes: dict = None,
+        planes: dict | None = None,
         show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
         use_lazy: bool = True,
     ) -> None:
@@ -195,7 +198,7 @@ class CZIDataLoader:
             )
 
             # set the axis labels based on the dimensions
-            viewer.dims.axis_labels = chl.sub_array.dims
+            viewer.dims.axis_labels = tuple(str(d) for d in chl.sub_array.dims)
 
 
 def process_channels(array6d, metadata) -> list[ChannelLayer]:
