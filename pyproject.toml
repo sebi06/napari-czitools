@@ -19,12 +19,11 @@ classifiers = [
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
-    "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
     "Topic :: Scientific/Engineering :: Image Processing",
 ]
-requires-python = ">=3.11, <3.14"
+requires-python = ">=3.12, <3.14"
 dependencies = [
     "numpy",
     "magicgui",
@@ -32,7 +31,7 @@ dependencies = [
     "superqt",
     "scikit-image",
     "pyqtgraph",
-    "czitools>=0.15.0"
+    "czitools>=0.16.0"
 ]
 
 [project.optional-dependencies]
@@ -75,7 +74,7 @@ fallback_version = "0.0.1+nogit"
 
 [tool.black]
 line-length = 79
-target-version = ['py310', 'py311', 'py312']
+target-version = ['py312', 'py313']
 
 [tool.ruff]
 line-length = 79
@@ -100,7 +99,7 @@ lint.ignore = [
 exclude = [
     ".git", ".tox", "build", "dist", "venv",
 ]
-target-version = "py312"
+target-version = "py313"
 fix = true
 
 [tool.pytest.ini_options]

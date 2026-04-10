@@ -79,7 +79,7 @@ def calculate_area(radius: float) -> float:
 
 ### Prerequisites:
 
-- Python 3.10+ (3.13 supported)
+- Python 3.12+ (3.12 and 3.13 supported; 3.11 was dropped together with czitools)
 - pip and virtualenv or a modern Python environment manager
 
 ### Quick start (recommended):
@@ -118,7 +118,7 @@ CI Quirk: Threading Deadlock on Linux (introduced when Python 3.13 added)
 
 ### Background:
 
-- The repository historically supported Python >=3.10, <3.13 without issues. After changing to support Python 3.13, GitHub Actions (Ubuntu) began experiencing intermittent infinite hangs during tests that exercise reading CZI files and creating Napari viewers.
+- The repository historically supported Python >=3.10, <3.13 without issues (3.10 and 3.11 have since been dropped, in line with czitools). After changing to support Python 3.13, GitHub Actions (Ubuntu) began experiencing intermittent infinite hangs during tests that exercise reading CZI files and creating Napari viewers.
 - Root cause is not a Python interpreter bug but a dependency resolution change: allowing 3.13 in pyproject.toml changed the dependency set pulled from PyPI, which introduced a combination of package versions (notably in imaging I/O/optimised libraries and czitools) that interact poorly in headless Linux CI, resulting in threading deadlock issues around subblock metadata reading.
 
 ### Symptoms:

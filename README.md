@@ -162,9 +162,9 @@ pytest
 
 **Linux (recommended - use tox):**
 ```bash
-tox -e py311-linux
+tox -e py312-linux
 ```
-(Replace `py311` with your Python version: `py310`, `py312`, or `py313`)
+(Replace `py312` with your Python version: `py312` or `py313`)
 
 **Linux (direct pytest):**
 ```bash
