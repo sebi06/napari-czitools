@@ -78,7 +78,9 @@ class MdTableWidget(QWidget):
         # fit columns to content
         self.mdtable.resizeColumnsToContents()
 
-    def update_style(self, font_bold: bool = True, font_size: int = 10) -> None:
+    def update_style(
+        self, font_bold: bool = True, font_size: int = 10
+    ) -> None:
         """
         This method customizes the appearance of the table headers by setting
         the font size, boldness, and font family. It also updates the header
@@ -138,7 +140,9 @@ class MdTreeWidget(QWidget):
                 hideRoot (bool, optional): Whether to hide the root node of the tree. Defaults to True.
     """
 
-    def __init__(self, data=None, expandlevel=0, show_type_column=True) -> None:
+    def __init__(
+        self, data=None, expandlevel=0, show_type_column=True
+    ) -> None:
         super().__init__()
 
         self._explicitly_hidden = False
@@ -167,7 +171,9 @@ class MdTreeWidget(QWidget):
         # If expandlevel=0, everything stays collapsed except "image"
         self.layout.addWidget(self.mdtree)
 
-    def setData(self, data, expandlevel: int = 0, hideRoot: bool = True) -> None:
+    def setData(
+        self, data, expandlevel: int = 0, hideRoot: bool = True
+    ) -> None:
         """
         Updates the metadata displayed in the tree widget.
 
@@ -199,7 +205,9 @@ class MdTreeWidget(QWidget):
             # With hideRoot=True, we need to expand one less level
             self.mdtree.expandToDepth(expandlevel - 1)
 
-    def set_type_column_visibility(self, visible: bool, column_id: int = 2) -> None:
+    def set_type_column_visibility(
+        self, visible: bool, column_id: int = 2
+    ) -> None:
         """
         Set the visibility of a column in the tree widget by its index.
 

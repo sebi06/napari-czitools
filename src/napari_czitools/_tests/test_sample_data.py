@@ -9,7 +9,7 @@ import pytest
 os.environ["AIOCP_MAX_WORKERS"] = "1"
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
-os.environ["QT_API"] = "pyqt5"
+os.environ["QT_API"] = "pyqt6"
 
 
 # Check environment flags
@@ -64,7 +64,9 @@ _configure_qt_platform()
     SKIP_VIEWER_CZI,
     reason="CZI + Qt Event Loop causes a SIGABRT on Linux. Skipping viewer-based IO.",
 )
-@pytest.mark.parametrize("sample_key", ["unique_id.0", "unique_id.1", "unique_id.2", "unique_id.3"])
+@pytest.mark.parametrize(
+    "sample_key", ["unique_id.0", "unique_id.1", "unique_id.2", "unique_id.3"]
+)
 def test_open_sample_with_viewer(make_napari_viewer, sample_key: str) -> None:
     """
     This test only runs on Windows/macOS where the C++ library is stable with Qt.
@@ -113,7 +115,9 @@ def test_basic_plugin_functionality_linux_ci() -> None:
     from napari_czitools import napari_get_reader
 
     # Verify file paths
-    assert (basedir / "CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi").exists()
+    assert (
+        basedir / "CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"
+    ).exists()
 
     # Verify reader registration
     reader = napari_get_reader("test.czi")

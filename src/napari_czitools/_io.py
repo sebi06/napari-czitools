@@ -166,17 +166,25 @@ class CZIDataLoader:
 
         if self.show_metadata == MetadataDisplayMode.TREE:
             # logger.info("Creating Metadata Tree")
-            md_dict = czimd.create_md_dict_nested(metadata, sort=True, remove_none=True)
+            md_dict = czimd.create_md_dict_nested(
+                metadata, sort=True, remove_none=True
+            )
             mdtree = MdTreeWidget(data=md_dict, expandlevel=0)
-            viewer.window.add_dock_widget(mdtree, name="MetadataTree", area="right")
+            viewer.window.add_dock_widget(
+                mdtree, name="MetadataTree", area="right"
+            )
 
         if self.show_metadata == MetadataDisplayMode.TABLE:
             # logger.info("Creating Metadata Table")
-            md_dict = czimd.create_md_dict_red(metadata, sort=True, remove_none=True)
+            md_dict = czimd.create_md_dict_red(
+                metadata, sort=True, remove_none=True
+            )
             mdtable = MdTableWidget()
             mdtable.update_metadata(md_dict)
             mdtable.update_style()
-            viewer.window.add_dock_widget(mdtable, name="MetadataTable", area="right")
+            viewer.window.add_dock_widget(
+                mdtable, name="MetadataTable", area="right"
+            )
 
         if self.show_metadata == MetadataDisplayMode.NONE:
             # logger.info("No Metadata Display")
@@ -247,7 +255,9 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
 
             # get the scaling factors for that channel and adapt Z-axis scaling
             scalefactors = [1.0] * len(sub_array.shape)
-            scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio["zx_sf"]
+            scalefactors[sub_array.get_axis_num("Z")] = metadata.scale.ratio[
+                "zx_sf"
+            ]
 
             # remove the last scaling factor in case of an RGB image
             if "A" in sub_array.dims:
@@ -268,21 +278,28 @@ def process_channels(array6d, metadata) -> list[ChannelLayer]:
             # try to read the display settings embedded in the CZI
             try:
                 lower = np.round(
-                    metadata.channelinfo.clims[ch][0] * metadata.maxvalue_list[ch],
+                    metadata.channelinfo.clims[ch][0]
+                    * metadata.maxvalue_list[ch],
                     0,
                 )
                 higher = np.round(
-                    metadata.channelinfo.clims[ch][1] * metadata.maxvalue_list[ch],
+                    metadata.channelinfo.clims[ch][1]
+                    * metadata.maxvalue_list[ch],
                     0,
                 )
             except IndexError:
-                logger.warning("Calculation from display setting from CZI failed. " "Use 0-Max instead.")
+                logger.warning(
+                    "Calculation from display setting from CZI failed. "
+                    "Use 0-Max instead."
+                )
                 lower = 0
                 higher = metadata.maxvalue[ch]
 
             # simple validity check
             if lower >= higher:
-                logger.warning("Invalid Display Scaling detected. Use Defaults")
+                logger.warning(
+                    "Invalid Display Scaling detected. Use Defaults"
+                )
                 lower = 0
                 higher = np.round(metadata.maxvalue[ch] * 0.25, 0)
 

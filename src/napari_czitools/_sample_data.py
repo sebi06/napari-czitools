@@ -9,11 +9,15 @@ logger = logging_tools.set_logging()
 def celldivision_data():
     """Opens 5D CZI image dataset"""
 
-    filepath = check_filepath("CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
+    filepath = check_filepath(
+        "CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"
+    )
 
     if filepath is None:
         logger.error("Could not find celldivision sample data file")
-        raise FileNotFoundError("Sample data file not found - this is normal in CI/CD environments")
+        raise FileNotFoundError(
+            "Sample data file not found - this is normal in CI/CD environments"
+        )
 
     return return_result(filepath)
 
@@ -21,11 +25,15 @@ def celldivision_data():
 def wellplate_data():
     """Opens 6D CZI image dataset"""
 
-    filepath = check_filepath("testwell96_A1-D12_S48_T1_C2_Z1_X640_Y480_ZSTD.czi")
+    filepath = check_filepath(
+        "testwell96_A1-D12_S48_T1_C2_Z1_X640_Y480_ZSTD.czi"
+    )
 
     if filepath is None:
         logger.error("Could not find wellplate sample data file")
-        raise FileNotFoundError("Sample data file not found - this is normal in CI/CD environments")
+        raise FileNotFoundError(
+            "Sample data file not found - this is normal in CI/CD environments"
+        )
 
     return return_result(filepath)
 
@@ -37,7 +45,9 @@ def zstack_data():
 
     if filepath is None:
         logger.error("Could not find zstack sample data file")
-        raise FileNotFoundError("Sample data file not found - this is normal in CI/CD environments")
+        raise FileNotFoundError(
+            "Sample data file not found - this is normal in CI/CD environments"
+        )
 
     return return_result(filepath)
 
@@ -49,7 +59,9 @@ def airyscan_zstack_data():
 
     if filepath is None:
         logger.error("Could not find airyscan sample data file")
-        raise FileNotFoundError("Sample data file not found - this is normal in CI/CD environments")
+        raise FileNotFoundError(
+            "Sample data file not found - this is normal in CI/CD environments"
+        )
 
     return return_result(filepath)
 
@@ -61,7 +73,9 @@ def he_stain_data():
 
     if filepath is None:
         logger.error("Could not find HE Stain sample data file")
-        raise FileNotFoundError("Sample data file not found - this is normal in CI/CD environments")
+        raise FileNotFoundError(
+            "Sample data file not found - this is normal in CI/CD environments"
+        )
 
     return return_result(filepath)
 
@@ -72,13 +86,19 @@ def return_result(filepath):
         result = reader_function(filepath)
         if result is None or len(result) == 0:
             logger.error("Reader function returned empty data")
-            raise ValueError("Sample data reader returned empty data - this is normal in CI/CD environments")
+            raise ValueError(
+                "Sample data reader returned empty data - this is normal in CI/CD environments"
+            )
         return result
     except (FileNotFoundError, OSError, ValueError, AttributeError) as e:
         logger.error("Failed to read sample data: %s", str(e))
         # In headless environments or when reading from URLs fails, this is expected
-        logger.info("Sample data unavailable - this is normal in CI/CD environments")
-        raise FileNotFoundError("Sample data unavailable in headless/CI environment") from e
+        logger.info(
+            "Sample data unavailable - this is normal in CI/CD environments"
+        )
+        raise FileNotFoundError(
+            "Sample data unavailable in headless/CI environment"
+        ) from e
 
 
 if __name__ == "__main__":

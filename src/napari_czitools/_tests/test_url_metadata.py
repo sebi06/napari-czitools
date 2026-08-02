@@ -7,7 +7,9 @@ from czitools.metadata_tools.boundingbox import CziBoundingBox
 from czitools.metadata_tools.czi_metadata import CziMetadata
 
 
-def _create_url_metadata_with_retry(url: str, retries: int = 3, delay_seconds: float = 1.0) -> CziMetadata:
+def _create_url_metadata_with_retry(
+    url: str, retries: int = 3, delay_seconds: float = 1.0
+) -> CziMetadata:
     """Create URL metadata with retry and skip on transient network errors."""
     last_error: Exception | None = None
     for attempt in range(1, retries + 1):
@@ -26,7 +28,10 @@ def _create_url_metadata_with_retry(url: str, retries: int = 3, delay_seconds: f
         if attempt < retries:
             time.sleep(delay_seconds)
 
-    pytest.skip("Skipping URL metadata test due to transient remote read failure: " f"{last_error}")
+    pytest.skip(
+        "Skipping URL metadata test due to transient remote read failure: "
+        f"{last_error}"
+    )
 
 
 class TestUrlMetadata:
@@ -73,8 +78,12 @@ class TestUrlMetadata:
 
         for dim in expected_dimensions:
             assert dim in bbox, f"Dimension '{dim}' not found in bounding box"
-            assert isinstance(bbox[dim], tuple), f"Dimension '{dim}' should be a tuple"
-            assert len(bbox[dim]) == 2, f"Dimension '{dim}' should have 2 values (min, max)"
+            assert isinstance(
+                bbox[dim], tuple
+            ), f"Dimension '{dim}' should be a tuple"
+            assert (
+                len(bbox[dim]) == 2
+            ), f"Dimension '{dim}' should have 2 values (min, max)"
 
     def test_url_metadata_specific_dimensions(self, sample_metadata):
         """Test specific dimension values match expected sample data."""
@@ -83,11 +92,21 @@ class TestUrlMetadata:
 
         # Test specific dimensions based on filename expectations
         # CellDivision_T3_Z6_CH1_X300_Y200_DCV_ZSTD.czi
-        assert bbox["T"][1] == 3, f"Expected T dimension max of 3, got {bbox['T'][1]}"
-        assert bbox["Z"][1] == 6, f"Expected Z dimension max of 6, got {bbox['Z'][1]}"
-        assert bbox["C"][1] == 1, f"Expected C dimension max of 1, got {bbox['C'][1]}"
-        assert bbox["X"][1] == 300, f"Expected X dimension max of 300, got {bbox['X'][1]}"
-        assert bbox["Y"][1] == 200, f"Expected Y dimension max of 200, got {bbox['Y'][1]}"
+        assert (
+            bbox["T"][1] == 3
+        ), f"Expected T dimension max of 3, got {bbox['T'][1]}"
+        assert (
+            bbox["Z"][1] == 6
+        ), f"Expected Z dimension max of 6, got {bbox['Z'][1]}"
+        assert (
+            bbox["C"][1] == 1
+        ), f"Expected C dimension max of 1, got {bbox['C'][1]}"
+        assert (
+            bbox["X"][1] == 300
+        ), f"Expected X dimension max of 300, got {bbox['X'][1]}"
+        assert (
+            bbox["Y"][1] == 200
+        ), f"Expected Y dimension max of 200, got {bbox['Y'][1]}"
 
     def test_url_metadata_dimension_access(self, sample_metadata):
         """Test that individual dimensions can be accessed without errors."""

@@ -19,35 +19,62 @@ def test_mdtree_type_column(qapp):
 
     # Test data
     test_data = {
-        "image": {"SizeX": 1024, "SizeY": 1024, "SizeZ": 10, "SizeC": 3, "SizeT": 1},
-        "metadata": {"CreationDate": "2024-01-01", "Software": "Test Software"},
+        "image": {
+            "SizeX": 1024,
+            "SizeY": 1024,
+            "SizeZ": 10,
+            "SizeC": 3,
+            "SizeT": 1,
+        },
+        "metadata": {
+            "CreationDate": "2024-01-01",
+            "Software": "Test Software",
+        },
     }
 
     # Test with type column visible (default)
     tree_widget_visible = MdTreeWidget(data=test_data, show_type_column=True)
-    assert hasattr(tree_widget_visible, "set_type_column_visibility"), "set_type_column_visibility method missing"
-    assert tree_widget_visible.show_type_column, "Type column should be visible by default"
+    assert hasattr(
+        tree_widget_visible, "set_type_column_visibility"
+    ), "set_type_column_visibility method missing"
+    assert (
+        tree_widget_visible.show_type_column
+    ), "Type column should be visible by default"
 
     # Test with type column hidden
     tree_widget_hidden = MdTreeWidget(data=test_data, show_type_column=False)
-    assert tree_widget_hidden.show_type_column is False, "Type column should be hidden"
+    assert (
+        tree_widget_hidden.show_type_column is False
+    ), "Type column should be hidden"
 
     # Test toggling visibility - use correct method signature
     tree_widget_visible.set_type_column_visibility(visible=False)
-    assert tree_widget_visible.show_type_column is False, "Type column should be hidden after toggle"
+    assert (
+        tree_widget_visible.show_type_column is False
+    ), "Type column should be hidden after toggle"
 
     tree_widget_visible.set_type_column_visibility(visible=True)
-    assert tree_widget_visible.show_type_column is True, "Type column should be visible after toggle"
+    assert (
+        tree_widget_visible.show_type_column is True
+    ), "Type column should be visible after toggle"
 
 
 def test_widget_integration(qapp):
     """Test the CziReaderWidget integration."""
 
     # Test that the widget can be created with type column control
-    widget = CziReaderWidget(None, sliders=SliderType.DoubleRangeSlider, show_type_column=False)
-    assert hasattr(widget, "show_type_column"), "show_type_column attribute missing"
-    assert hasattr(widget, "type_column_checkbox"), "type_column_checkbox attribute missing"
-    assert hasattr(widget, "_type_column_changed"), "_type_column_changed method missing"
+    widget = CziReaderWidget(
+        None, sliders=SliderType.DoubleRangeSlider, show_type_column=False
+    )
+    assert hasattr(
+        widget, "show_type_column"
+    ), "show_type_column attribute missing"
+    assert hasattr(
+        widget, "type_column_checkbox"
+    ), "type_column_checkbox attribute missing"
+    assert hasattr(
+        widget, "_type_column_changed"
+    ), "_type_column_changed method missing"
 
 
 if __name__ == "__main__":

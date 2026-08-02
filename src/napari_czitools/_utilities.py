@@ -34,12 +34,16 @@ def check_filepath(filepath: str) -> str | None:
     filepath_to_read = os.path.join(TESTDATA_BASE_PATH, filepath)
 
     if os.path.exists(filepath_to_read):
-        logger.info(f"File: {filepath_to_read} exists. Start reading pixel data ...")  # noqa: G004
+        logger.info(
+            f"File: {filepath_to_read} exists. Start reading pixel data ..."
+        )  # noqa: G004
 
         return filepath_to_read
 
     else:
-        logger.warning("File does not exist locally. Trying to read from repo.")
+        logger.warning(
+            "File does not exist locally. Trying to read from repo."
+        )
         filepath_to_read = os.path.join(GITHUB_BASE_URL, filepath)
 
         if validators.url(filepath_to_read):

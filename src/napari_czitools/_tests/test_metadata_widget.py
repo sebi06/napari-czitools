@@ -88,7 +88,11 @@ class TestMdTableWidget:
         assert widget.mdtable.columnCount() == 2
 
         # Check content
-        expected_data = [("Width", "1024"), ("Height", "768"), ("Channels", "3")]
+        expected_data = [
+            ("Width", "1024"),
+            ("Height", "768"),
+            ("Channels", "3"),
+        ]
 
         for row, (expected_key, expected_value) in enumerate(expected_data):
             key_item = widget.mdtable.item(row, 0)
@@ -103,7 +107,13 @@ class TestMdTableWidget:
         """Test update_metadata with complex values that need string conversion."""
         widget = MdTableWidget()
 
-        test_dict = {"List": [1, 2, 3], "Dict": {"nested": "value"}, "None": None, "Boolean": True, "Float": 3.14159}
+        test_dict = {
+            "List": [1, 2, 3],
+            "Dict": {"nested": "value"},
+            "None": None,
+            "Boolean": True,
+            "Float": 3.14159,
+        }
 
         widget.update_metadata(test_dict)
 
@@ -218,14 +228,19 @@ class TestMdTreeWidget:
     def test_init_custom_parameters(self):
         """Test initialization with custom parameters."""
         test_data = {"key": "value"}
-        widget = MdTreeWidget(data=test_data, expandlevel=2, show_type_column=False)
+        widget = MdTreeWidget(
+            data=test_data, expandlevel=2, show_type_column=False
+        )
 
         assert widget.label == "Metadata Tree"
         assert widget.show_type_column is False
 
     def test_init_with_data(self):
         """Test initialization with data."""
-        test_data = {"image": {"width": 1024, "height": 768}, "metadata": {"channels": 3}}
+        test_data = {
+            "image": {"width": 1024, "height": 768},
+            "metadata": {"channels": 3},
+        }
 
         widget = MdTreeWidget(data=test_data)
 
@@ -242,14 +257,20 @@ class TestMdTreeWidget:
         with (
             patch.object(widget.mdtree, "setData"),
             patch.object(widget.mdtree, "collapseAll"),
-            patch.object(widget, "set_type_column_visibility") as mock_set_type_column,
-            patch.object(widget, "_expand_specific_item") as mock_expand_specific,
+            patch.object(
+                widget, "set_type_column_visibility"
+            ) as mock_set_type_column,
+            patch.object(
+                widget, "_expand_specific_item"
+            ) as mock_expand_specific,
         ):
 
             widget.setData(test_data, expandlevel=1, hideRoot=False)
 
             # Verify method calls
-            mock_set_type_column.assert_called_once_with(True)  # default show_type_column
+            mock_set_type_column.assert_called_once_with(
+                True
+            )  # default show_type_column
             mock_expand_specific.assert_called_once_with("image", levels=1)
 
     def test_setData_with_expansion(self):
@@ -313,9 +334,13 @@ class TestMdTreeWidget:
         mock_root.child.return_value = mock_child
 
         with (
-            patch.object(widget.mdtree, "invisibleRootItem", return_value=mock_root),
+            patch.object(
+                widget.mdtree, "invisibleRootItem", return_value=mock_root
+            ),
             patch.object(widget.mdtree, "expandItem") as mock_expandItem,
-            patch.object(widget, "_expand_children_recursive") as mock_expand_children,
+            patch.object(
+                widget, "_expand_children_recursive"
+            ) as mock_expand_children,
         ):
 
             widget._expand_specific_item("image", levels=2)
@@ -337,7 +362,9 @@ class TestMdTreeWidget:
         mock_root.child.return_value = mock_child
 
         with (
-            patch.object(widget.mdtree, "invisibleRootItem", return_value=mock_root),
+            patch.object(
+                widget.mdtree, "invisibleRootItem", return_value=mock_root
+            ),
             patch.object(widget.mdtree, "expandItem") as mock_expandItem,
         ):
 
@@ -357,7 +384,9 @@ class TestMdTreeWidget:
         mock_root.child.return_value = mock_child
 
         with (
-            patch.object(widget.mdtree, "invisibleRootItem", return_value=mock_root),
+            patch.object(
+                widget.mdtree, "invisibleRootItem", return_value=mock_root
+            ),
             patch.object(widget.mdtree, "expandItem") as mock_expandItem,
         ):
 
@@ -427,11 +456,15 @@ class TestMdTreeWidget:
         """Test the initialization sequence of collapse and expand operations."""
         test_data = {"image": {"width": 1024}, "other": {"height": 768}}
 
-        with patch("napari_czitools._metadata_widget.DataTreeWidget") as mock_tree_class:
+        with patch(
+            "napari_czitools._metadata_widget.DataTreeWidget"
+        ) as mock_tree_class:
             # Create a more Qt-compatible mock that inherits from QWidget-like behavior
             mock_tree_instance = Mock()
             mock_tree_instance.__class__ = Mock()
-            mock_tree_instance.__class__.__bases__ = (Mock(),)  # Mock inheritance
+            mock_tree_instance.__class__.__bases__ = (
+                Mock(),
+            )  # Mock inheritance
             mock_tree_class.return_value = mock_tree_instance
 
             # Mock the invisibleRootItem and its methods
@@ -452,8 +485,12 @@ class TestMdTreeWidget:
                 widget = MdTreeWidget(data=test_data, expandlevel=2)
 
                 # Verify that the data was set and methods were called
-                mock_tree_instance.setData.assert_called_with(test_data, expandlevel=0, hideRoot=True)
-                mock_tree_instance.expandToDepth.assert_called_with(1)  # expandlevel - 1
+                mock_tree_instance.setData.assert_called_with(
+                    test_data, expandlevel=0, hideRoot=True
+                )
+                mock_tree_instance.expandToDepth.assert_called_with(
+                    1
+                )  # expandlevel - 1
                 mock_addWidget.assert_called_once_with(mock_tree_instance)
 
             # Verify the sequence of calls during initialization

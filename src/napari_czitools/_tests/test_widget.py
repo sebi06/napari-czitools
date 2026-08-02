@@ -9,11 +9,15 @@ from napari_czitools._widget import (
 )
 
 # Check if we're running in a headless environment (like GitHub Actions)
-HEADLESS = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
+HEADLESS = (
+    os.environ.get("CI") == "true"
+    or os.environ.get("GITHUB_ACTIONS") == "true"
+)
 
 # Skip GUI tests in headless environments unless xvfb is available
 pytestmark = pytest.mark.skipif(
-    HEADLESS and not os.environ.get("DISPLAY"), reason="GUI tests require display server (use xvfb-run in CI)"
+    HEADLESS and not os.environ.get("DISPLAY"),
+    reason="GUI tests require display server (use xvfb-run in CI)",
 )
 
 
@@ -33,7 +37,16 @@ def test_czi_reader_widget_initialization(make_napari_viewer):
     # assert isinstance(widget.channel_slider, RangeSliderWidget)
     # assert isinstance(widget.z_slider, RangeSliderWidget)
 
-    assert isinstance(widget.scene_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
-    assert isinstance(widget.time_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
-    assert isinstance(widget.channel_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
-    assert isinstance(widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+    assert isinstance(
+        widget.scene_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
+    )
+    assert isinstance(
+        widget.time_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
+    )
+    assert isinstance(
+        widget.channel_slider,
+        RangeSliderWidget | LabeledDoubleRangeSliderWidget,
+    )
+    assert isinstance(
+        widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
+    )

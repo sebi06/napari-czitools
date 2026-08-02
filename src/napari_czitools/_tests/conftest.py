@@ -29,7 +29,9 @@ def has_gui_support() -> bool:
         return True
     else:
         # Linux/Unix systems require DISPLAY or WAYLAND_DISPLAY
-        return bool(os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY"))
+        return bool(
+            os.environ.get("DISPLAY") or os.environ.get("WAYLAND_DISPLAY")
+        )
 
 
 # Environment constants
@@ -43,8 +45,12 @@ def pytest_configure(config: Config) -> None:
     Args:
         config: Pytest configuration object
     """
-    config.addinivalue_line("markers", "qtbot: mark test as requiring Qt (uses pytest-qt)")
-    config.addinivalue_line("markers", "network: mark test as requiring network access")
+    config.addinivalue_line(
+        "markers", "qtbot: mark test as requiring Qt (uses pytest-qt)"
+    )
+    config.addinivalue_line(
+        "markers", "network: mark test as requiring network access"
+    )
 
 
 if not _HAS_PYTEST_QT:

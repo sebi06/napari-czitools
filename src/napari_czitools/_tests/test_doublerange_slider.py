@@ -123,7 +123,9 @@ class TestLabeledDoubleRangeSliderWidget:
     def test_update_readout(self):
         """Test readout update functionality."""
         widget = LabeledDoubleRangeSliderWidget(
-            min_value=0, max_value=10, readout=True,
+            min_value=0,
+            max_value=10,
+            readout=True,
         )
 
         initial_text = widget.readout_label.text()
@@ -184,7 +186,10 @@ class TestLabeledDoubleRangeSliderWidget:
     def test_on_value_changed(self):
         """Test internal value change handler."""
         widget = LabeledDoubleRangeSliderWidget(
-            min_value=0, max_value=10, readout=True, show_label=True,
+            min_value=0,
+            max_value=10,
+            readout=True,
+            show_label=True,
         )
 
         signal_mock = MagicMock()

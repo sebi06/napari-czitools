@@ -8,13 +8,17 @@ from napari_czitools import napari_get_reader
 @pytest.fixture
 def sample_czi_path():
     """Fixture to provide sample CZI file path."""
-    return Path("src/napari_czitools/sample_data/CellDivision_T3_Z6_CH1_X300_Y200_DCV_ZSTD.czi")
+    return Path(
+        "src/napari_czitools/sample_data/CellDivision_T3_Z6_CH1_X300_Y200_DCV_ZSTD.czi"
+    )
 
 
 @pytest.fixture
 def sample_czi_path_large():
     """Fixture to provide a larger sample CZI file path."""
-    return Path("src/napari_czitools/sample_data/CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi")
+    return Path(
+        "src/napari_czitools/sample_data/CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"
+    )
 
 
 # @pytest.mark.skip(

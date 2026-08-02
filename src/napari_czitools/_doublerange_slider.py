@@ -6,7 +6,7 @@ QRangeSlider and QLabeledRangeSlider instead of a custom QSlider subclass.
 """
 
 import types
-from typing import Any, Sequence
+from typing import Any
 
 from qtpy.QtCore import Qt, Signal
 from qtpy.QtWidgets import (
@@ -95,7 +95,9 @@ class LabeledDoubleRangeSliderWidget(QWidget):
         layout = QVBoxLayout()
 
         if show_label:
-            self.label = QLabel(f"{dimension_label} Slider" f" (Range: {min_value}-{max_value})")
+            self.label = QLabel(
+                f"{dimension_label} Slider (Range: {min_value}-{max_value})"
+            )
             layout.addWidget(self.label)
 
         slider_layout = QHBoxLayout()
@@ -164,14 +166,18 @@ class LabeledDoubleRangeSliderWidget(QWidget):
             slice_count = self.slice_count()
             self.readout_label.setText(f"Slices: {slice_count}")
         if self.show_label and hasattr(self, "label"):
-            self.label.setText(f"{self.dimension_label} Slider" f" (Range: {self._low}-{self._high})")
+            self.label.setText(
+                f"{self.dimension_label} Slider (Range: {self._low}-{self._high})"
+            )
 
     def update_label(self) -> None:
         """Update the dimension label with current min/max range."""
         if self.show_label and hasattr(self, "label"):
             min_val = self.minimum()
             max_val = self.maximum()
-            self.label.setText(f"{self.dimension_label} Slider" f" (Range: {min_val}-{max_val})")
+            self.label.setText(
+                f"{self.dimension_label} Slider (Range: {min_val}-{max_val})"
+            )
 
     def low(self) -> int:
         """Get the current low value.
@@ -453,7 +459,9 @@ if __name__ == "__main__":
     def toggle_visibility():
         """Toggle the visibility of the complete labeled slider."""
         labeled_slider.setVisible(not labeled_slider.isVisible())
-        toggle_button.setText(f"{'Show' if not labeled_slider.isVisible() else 'Hide'}" " Labeled Slider")
+        toggle_button.setText(
+            f"{'Show' if not labeled_slider.isVisible() else 'Hide'} Labeled Slider"
+        )
 
     app = QApplication(sys.argv)
 
@@ -484,4 +492,4 @@ if __name__ == "__main__":
 
     widget.setLayout(layout)
     widget.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())

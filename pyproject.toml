@@ -43,7 +43,7 @@ testing = [
     "pytest-timeout",
     "pytest-forked",  # Required to trying prevent CZI + Qt Abort crashes on some Linux systems
     "napari",
-    "pyqt5",
+    "pyqt6>=6.7,!=6.11.0,!=6.11.1",
 ]
 
 [project.entry-points."napari.manifest"]
