@@ -92,3 +92,6 @@ napari-czitools/experimental/**
 /.vscode/
 /.github/prompts.txt
 /.github/pr_decriptions
+
+# Ignore local Claude settings directory
+.claude/
