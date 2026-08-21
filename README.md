@@ -248,8 +248,6 @@ The software & scripts are free to use for everybody. The author undertakes no w
 
 By using this plugin you agree to this disclaimer.
 
-Version: 2025.08.20
-
 [napari]: https://github.com/napari/napari
 [copier]: https://copier.readthedocs.io/en/stable/
 [MIT]: http://opensource.org/licenses/MIT
