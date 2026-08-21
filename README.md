@@ -9,9 +9,12 @@
       - [AiryScan 3D Stack](#airyscan-3d-stack)
       - [Wellplate Data](#wellplate-data)
     - [Advanced CZI Reader (CziReadTools) plugin](#advanced-czi-reader-czireadtools-plugin)
+      - [Lazy Loading](#lazy-loading)
   - [Current Limitations](#current-limitations)
     - [Future plans](#future-plans)
   - [Contributing](#contributing)
+    - [Running Tests](#running-tests)
+    - [Recent Compatibility Notes](#recent-compatibility-notes)
   - [License](#license)
   - [Issues](#issues)
 - [Disclaimer](#disclaimer)
@@ -21,7 +24,7 @@
 [![License MIT](https://img.shields.io/pypi/l/napari-czitools.svg?color=green)](https://github.com/sebi06/napari-czitools/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-czitools.svg?color=green)](https://pypi.org/project/napari-czitools)
 [![Python Version](https://img.shields.io/pypi/pyversions/napari-czitools.svg?color=green)](https://python.org)
-[![tests](https://github.com/sebi06/napari-czitools/workflows/tests/badge.svg)](https://github.com/sebi06/napari-czitools/actions)
+[![tests](https://github.com/sebi06/napari-czitools/actions/workflows/test_and_deploy_pypi.yml/badge.svg)](https://github.com/sebi06/napari-czitools/actions/workflows/test_and_deploy_pypi.yml)
 [![codecov](https://codecov.io/gh/sebi06/napari-czitools/branch/main/graph/badge.svg)](https://codecov.io/gh/sebi06/napari-czitools)
 [![napari hub](https://img.shields.io/endpoint?url=https://api.napari-hub.org/shields/napari-czitools)](https://napari-hub.org/plugins/napari-czitools)
 [![npe2](https://img.shields.io/badge/plugin-npe2-blue?link=https://napari.org/stable/plugins/index.html)](https://napari.org/stable/plugins/index.html)
@@ -49,18 +52,19 @@ You can install `napari-czitools` via [pip]:
 
     pip install napari-czitools
 
+The current release requires Python 3.12 or 3.13 and `czitools>=0.20.0`.
+
 To install latest development version :
 
     pip install git+https://github.com/sebi06/napari-czitools.git
 
 ## Supported Operating Systems
 
-Currently this only tested on:
+The test suite runs on Python 3.12 and 3.13 for:
 
 - Linux
 - Windows
-
-MacOS is not supported yet out of the box yet, but [czitools] uses [pylibCZIrw]. But it should be possible to install it manually: [MaxOS wheels for pylibCZIrw] (read and write CZI files on MacOS).
+- macOS
 
 ## Usage - Core Functionalities
 
@@ -70,7 +74,7 @@ The plugin provides a reader for CZI files and allows to load the image data int
 
 - Open complete CZI Files and display the metadata in Napari using the [czitools] package
 
-![Open complete CZI file](./readme_images/file_open_mdtable_lls7.png)
+![Open complete CZI file](https://github.com/sebi06/napari-czitools/raw/main/readme_images/file_open_mdtable_lls7.png)
 
 - Open different CZI Image sample data
 - if not found locally in current directory `../src/napari_czitools/sample_data` it will be opened from remote repository (might be slow)
@@ -115,25 +119,63 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 - This allows to read parts of a CZI image dataset
 - Important - when reading a subset the metadata will still reflects the size of the complete CZI
 
-![Advanced CZI Reader - Plugin](./readme_images/load_pixel1.png)
+![Advanced CZI Reader - Plugin](https://github.com/sebi06/napari-czitools/raw/main/readme_images/load_pixel1.png)
 
 - Example for reading a subset
   - Timepoints (4-7): 4 slices or T=4
   - Channels (0-0): 1 slice or CH=1
   - Z-Plane (7-10): 4 slices or Z=4
 
-![Advanced CZI Reader - Plugin](./readme_images/load_pixel2.png)
+![Advanced CZI Reader - Plugin](https://github.com/sebi06/napari-czitools/raw/main/readme_images/load_pixel2.png)
+
+#### Lazy Loading
+
+The **Lazy Loading** checkbox is enabled by default. It controls which
+`czitools` reader is used after **Load Pixel Data** is pressed:
+
+- **Enabled:** the plugin calls `read_tools.read_stacks` with the selected
+  scene, time, channel, and Z ranges. This scene-aware path can return one
+  xarray stack for equal-sized scenes or a list of stacks when scene shapes
+  differ. The plugin creates one napari image layer per channel and appends a
+  scene suffix to layer names when separate scene stacks are returned.
+- **Disabled:** the plugin calls `read_tools.read_6darray` and constructs one
+  regular array in `STCZYX(A)` order. This eager path requires selected scenes
+  to have compatible shapes.
+
+The checkbox selects the stack-oriented reader, but the widget currently calls
+it with `use_dask=False`. Pixel data is therefore read while the load action is
+running before the layers are added to napari. In other words, the default UI
+option is scene-aware and memory-friendlier for differently shaped scenes, but
+it is not Dask-backed on-demand loading.
+
+True lazy pixel loading is available through the Python reader API by combining
+`use_lazy=True` with `use_dask=True`:
+
+```python
+from napari_czitools._reader import reader_function_adv
+
+reader_function_adv(
+    "image.czi",
+    use_lazy=True,
+    use_dask=True,
+)
+```
+
+In this mode, `czitools` reads the CZI metadata and builds xarray objects backed
+by Dask task graphs first. The individual CZI pixel planes are not loaded at
+that point. Napari receives the Dask-backed channel layers and triggers the
+required reads when image data is accessed or displayed. Disabling
+`use_lazy`, even with `use_dask=True`, still reads all pixels eagerly before
+wrapping the result in a Dask array.
 
 ## Current Limitations
 
-The plugin is still in its very early stage, therefor expect bugs and breaking changes
+The plugin is still in its early stages; expect bugs and breaking changes.
 
-- reading CZI with multiple scenes only works when the scenes have equal size
 - opening the sample CZI files will not display the CZI metadata right now
 
 ### Future plans
 
-- allow reading individual scenes when scenes have different sizes
 - upgrade [pylibCZIrw] to allow use [bioio-czi] for even better reading
 - export of metadata table
 
@@ -148,41 +190,34 @@ the coverage at least stays the same before you submit a pull request.
 
 Install test dependencies first (recommended for full local coverage):
 
-```bash
-pip install -e ".[testing]"
-```
+    pip install -e ".[testing]"
 
 This installs `pytest-qt`, which provides the `qtbot` fixture used by
 napari/Qt tests.
 
 **Windows/macOS:**
-```bash
-pytest
-```
+
+    pytest
 
 **Linux (recommended - use tox):**
-```bash
-tox -e py312-linux
-```
+
+    tox -e py312-linux
+
 (Replace `py312` with your Python version: `py312` or `py313`)
 
 **Linux (direct pytest):**
-```bash
-pytest -v --forked --color=yes
-```
+
+    pytest -v --forked --color=yes
 
 Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by running each test in its own process. This flag is not available on Windows.
 
 ### Recent Compatibility Notes
 
-- `czitools>=0.14.0` is supported.
-- `czitools==0.15.0` changed `read_tools.read_stacks` to return
-  `(array6d, dims, num_stacks, metadata)`.
-- The plugin now supports both 3-value and 4-value `read_stacks`
-  return signatures for backward compatibility.
-- Newer `czitools` may return scene data as a list of xarray stacks when lazy
-  reading is enabled. The plugin now handles both single-stack and scene-list
-  outputs when creating channel layers.
+- `czitools>=0.20.0` is required.
+- `read_tools.read_stacks` returns
+  `(arrays_or_list, dims, num_stacks, metadata)`. The plugin handles both a
+  single stacked xarray object and a list containing one xarray stack per
+  scene.
 - Channel extraction uses positional indexing to support channel coordinates
   represented by names (for example `"DAPI"`, `"EGFP"`) instead of numeric
   labels.
@@ -217,7 +252,6 @@ Version: 2025.08.20
 
 [napari]: https://github.com/napari/napari
 [copier]: https://copier.readthedocs.io/en/stable/
-[@napari]: https://github.com/napari
 [MIT]: http://opensource.org/licenses/MIT
 [napari-plugin-template]: https://github.com/napari/napari-plugin-template
 [file an issue]: https://github.com/sebi06/napari-czitools/issues

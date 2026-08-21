@@ -106,7 +106,10 @@ Run the test suite (local):
 
 ## Notes about headless GUI tests:
 
-- The test matrix runs GUI/headless tests; on Linux CI the tests set QT_QPA_PLATFORM=offscreen and DISPLAY=:99 via the workflow.
+- The test matrix runs on Linux, Windows, and macOS with Python 3.12 and
+       3.13. CI uses the `headless-gui` action and sets
+       `QT_QPA_PLATFORM=offscreen`; Linux-specific thread limits are configured in
+       `tox.ini`.
 - To replicate CI locally, set the following environment variables and limit threads:
    On POSIX shells:
        export QT_QPA_PLATFORM=offscreen
@@ -153,26 +156,18 @@ CI Quirk: Threading Deadlock on Linux (introduced when Python 3.13 added)
        print('czitools', czitools.__version__)
        print('python', sys.version)
 
-### How to Add Python 3.13 Support Properly
+### Maintaining Python 3.13 Support
 
-Recommended path to support Python 3.13 without CI flakes:
+Recommended path to maintain Python 3.13 support without CI flakes:
 
-1. Add 3.13 to the CI matrix (already done) but iterate on dependencies: run the CI matrix locally (or in a dedicated ephemeral runner) and capture failing tests.
+1. Keep 3.12 and 3.13 in the CI matrix and run the matrix locally (or in a dedicated ephemeral runner) when changing dependencies.
 2. Narrow down which package versions changed between the previously-working state and now (e.g., czitools, numpy, pylibczirw, numba, pyqtgraph), and try pinning them in pyproject.toml to confirmed working ranges.
 3. Open a small PR to pin suspect packages temporarily to a version that is known to work while the upstream bug is fixed in the dependency.
 4. Alternatively, apply runtime mitigations (already added in tests) that keep threads limited in headless CI.
 
-### Example pinning strategy (temporary): in pyproject.toml:
-
-dependencies = [
-    "numpy",
-    "magicgui",
-    "qtpy",
-    "superqt",
-    "scikit-image",
-    "pyqtgraph",
-    "czitools>=0.13.0,<0.20.0",  # pin to avoid threading deadlock in CI
-]
+Do not lower the supported dependency baseline below `czitools>=0.20.0`.
+When investigating a regression, use a temporary local constraint or a focused
+test branch rather than documenting an obsolete package range.
 
 ### Tests and Local Debugging Tips
 
@@ -186,14 +181,18 @@ dependencies = [
 
 ### Recent Changes and Lessons Learned
 
-- Dependency baseline now uses `czitools>=0.14.0`.
-- `czitools==0.15.0` changed `read_tools.read_stacks` from returning
-       3 values to returning 4 values:
-       `(array6d, dims, num_stacks, metadata)`.
-       Keep compatibility by supporting both tuple lengths in reader code.
-- With newer `czitools`, lazy/stack reading may return a list of
-       `xarray.DataArray` objects (one per scene) instead of a single stack.
-       Code that processes arrays should accept both shapes.
+- Dependency baseline is `czitools>=0.20.0`.
+- `read_tools.read_stacks` returns
+       `(arrays_or_list, dims, num_stacks, metadata)`. With
+       `stack_scenes=True`, equal-sized scenes can be one stacked
+       `xarray.DataArray`; differently sized scenes remain a list containing
+       one `xarray.DataArray` per scene. Code that processes reader output must
+       accept both shapes.
+- The widget's **Lazy Loading** checkbox selects `read_stacks` instead of
+       `read_6darray`, but it does not currently set `use_dask=True`. True
+       on-demand pixel reads require both `use_lazy=True` and `use_dask=True`
+       through the Python reader API. `read_6darray(..., use_dask=True)` still
+       reads pixels eagerly before wrapping the result.
 - Channel coordinates can be string labels (for example `DAPI`, `EGFP`).
        Prefer positional indexing (`isel`) over label indexing (`sel`) when
        iterating channels by integer index.
@@ -259,7 +258,7 @@ FORCE_CZI_TESTS=1 pytest src/napari_czitools/_tests/test_sample_data.py::test_op
 ### Notes for Copilot / Contributors
 
 - When asked to modify tests that involve CZI reading, prefer adding environment detection and minimal mitigations (disable progress bars, limit number of threads) rather than broad Python-version-based skips.
-- If adding Python 3.13 to the matrix, add it incrementally and be prepared to pin transitive dependencies if CI starts failing.
+- When changing the Python 3.13 matrix or dependencies, do so incrementally and be prepared to pin transitive dependencies if CI starts failing.
 - Always reproduce CI issues locally where possible and prefer opening small PRs that pin suspect packages while investigating upstream fixes.
 
 If you'd like, I can:
