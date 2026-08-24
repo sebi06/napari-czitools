@@ -463,11 +463,14 @@ class CziReaderWidget(QWidget):
             os.path.basename(self.filename_edit.value),
             planes,
         )
+        use_lazy = self.lazy_loading_checkbox.isChecked()
         reader_function_adv(
             self.filename_edit.value,
             zoom=1.0,
             planes=planes,
-            use_lazy=self.lazy_loading_checkbox.isChecked(),
+            use_lazy=use_lazy,
+            # dask is required for true lazy reading; enable it automatically
+            use_dask=use_lazy,
             show_metadata=MetadataDisplayMode.NONE,
         )
 

@@ -157,9 +157,10 @@ class CZIDataLoader:
 
         if self.use_lazy:
             # Read stacks with compatibility for multiple czitools versions.
+            # use_dask must be True for actual lazy/on-demand pixel reads.
             array6d, metadata = read_stacks_compat(
                 self.path,
-                use_dask=self.use_dask,
+                use_dask=True,
                 use_xarray=self.use_xarray,
                 planes=self.planes,
             )
