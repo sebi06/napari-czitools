@@ -189,10 +189,28 @@ test branch rather than documenting an obsolete package range.
        one `xarray.DataArray` per scene. Code that processes reader output must
        accept both shapes.
 - The widget's **Lazy Loading** checkbox selects `read_stacks` instead of
-       `read_6darray`, but it does not currently set `use_dask=True`. True
-       on-demand pixel reads require both `use_lazy=True` and `use_dask=True`
-       through the Python reader API. `read_6darray(..., use_dask=True)` still
-       reads pixels eagerly before wrapping the result.
+       `read_6darray` and now forwards `use_dask=True` alongside `use_lazy`.
+       For genuine on-demand pixel reads both flags must be True together.
+       `read_6darray(..., use_dask=True)` still reads pixels eagerly before
+       wrapping the result — only `read_stacks` provides a truly lazy path.
+- For gigapixel CZIs (single 2D planes larger than ~256 MB uncompressed) the
+       reader path automatically activates spatial Y/X tiling in
+       `czitools.read_tools.read_stacks`: each Dask chunk becomes one ROI-based
+       `pylibCZIrw.CziReader.read(roi=(x, y, w, h))` call, so viewport-scale
+       reads only touch the intersecting tiles instead of full planes.
+- `ChannelLayer` carries a `contrast_limits` field derived from the CZI's
+       embedded display settings. Both entry points (`_io.CZIDataLoader` and
+       `_reader.reader_function`) forward it to `viewer.add_image` so napari
+       never triggers its auto-scan across a large Dask array to compute the
+       display range.
+- When lazy mode is on, `CZIDataLoader` defaults to
+       `use_multiscale=True` and calls
+       `czitools.read_tools.read_stacks_multiscale` to build a per-level
+       Dask pyramid. `ChannelLayer.sub_array` may be a single
+       `xr.DataArray` (single-scale) or a `list[xr.DataArray]` (multiscale);
+       `add_to_viewer` inspects the type and passes `multiscale=True`
+       accordingly. Files without an on-disk pyramid still work because
+       `read_stacks_multiscale` returns a single-level list.
 - Channel coordinates can be string labels (for example `DAPI`, `EGFP`).
        Prefer positional indexing (`isel`) over label indexing (`sel`) when
        iterating channels by integer index.

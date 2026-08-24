@@ -133,40 +133,65 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 The **Lazy Loading** checkbox is enabled by default. It controls which
 `czitools` reader is used after **Load Pixel Data** is pressed:
 
-- **Enabled:** the plugin calls `read_tools.read_stacks` with the selected
-  scene, time, channel, and Z ranges. This scene-aware path can return one
-  xarray stack for equal-sized scenes or a list of stacks when scene shapes
-  differ. The plugin creates one napari image layer per channel and appends a
-  scene suffix to layer names when separate scene stacks are returned.
+- **Enabled:** the plugin calls `read_tools.read_stacks` with `use_dask=True`
+  and the selected scene, time, channel, and Z ranges. This scene-aware path
+  returns Dask-backed xarray stacks — one per equal-sized scene group, or a
+  list when scene shapes differ. Pixel planes are read only when napari asks
+  for them. The plugin creates one napari image layer per channel and appends
+  a scene suffix to layer names when separate scene stacks are returned.
 - **Disabled:** the plugin calls `read_tools.read_6darray` and constructs one
-  regular array in `STCZYX(A)` order. This eager path requires selected scenes
-  to have compatible shapes.
+  regular NumPy array in `STCZYX(A)` order. This eager path loads every
+  selected plane into RAM and requires the selected scenes to have compatible
+  shapes.
 
-The checkbox selects the stack-oriented reader, but the widget currently calls
-it with `use_dask=False`. Pixel data is therefore read while the load action is
-running before the layers are added to napari. In other words, the default UI
-option is scene-aware and memory-friendlier for differently shaped scenes, but
-it is not Dask-backed on-demand loading.
+##### Gigapixel CZIs (whole-slide, large 2D scans)
 
-True lazy pixel loading is available through the Python reader API by combining
-`use_lazy=True` with `use_dask=True`:
+For files whose individual 2D planes are larger than about 256 MB uncompressed
+(for example a `93,555 × 138,996` `uint16` plane ≈ 24 GB), `czitools`
+automatically switches to spatial Y/X tiling: each Dask chunk becomes one
+ROI-based read via `pylibCZIrw`, so napari only fetches the tiles that
+intersect the current viewport instead of full planes. Small planes keep the
+faster whole-plane path.
+
+On top of tiling, lazy mode also enables **multiscale rendering**. The plugin
+calls `czitools.read_tools.read_stacks_multiscale` to detect the CZI's stored
+pyramid levels (via `pylibCZIrw` subblock enumeration) and hands napari one
+lazy Dask array per level as `viewer.add_image(..., multiscale=True)`. This
+lets napari render the coarsest level immediately from a single GPU texture
+and stream finer tiles on zoom. If the coarsest stored level is still larger
+than the GPU texture limit (~16k px per edge), extra synthetic coarser
+levels are added on the fly using libCZI's C++ resampler. Files without any
+on-disk pyramid degrade transparently to a single-level "pyramid" and behave
+as before.
+
+To keep opening these files usable, the plugin also passes an explicit
+`contrast_limits` argument to `viewer.add_image` (derived from the CZI's
+embedded display settings). Without this, napari would auto-scan every chunk
+of the Dask array to determine the display range and materialize the entire
+plane in RAM before the first pixel is shown.
+
+##### Advanced Python usage
+
+The Python reader API forwards the same lazy behaviour:
 
 ```python
 from napari_czitools._reader import reader_function_adv
 
 reader_function_adv(
     "image.czi",
-    use_lazy=True,
-    use_dask=True,
+    use_lazy=True,        # widget checkbox — read_stacks path
+    use_dask=True,        # required for on-demand reads
+    use_multiscale=True,  # napari renders coarse-level tiles first
+    max_coarse_edge=8192, # coarsest pyramid edge target (px)
 )
 ```
 
-In this mode, `czitools` reads the CZI metadata and builds xarray objects backed
-by Dask task graphs first. The individual CZI pixel planes are not loaded at
-that point. Napari receives the Dask-backed channel layers and triggers the
-required reads when image data is accessed or displayed. Disabling
-`use_lazy`, even with `use_dask=True`, still reads all pixels eagerly before
-wrapping the result in a Dask array.
+With `use_lazy=True`, `czitools` reads the CZI metadata and builds Dask task
+graphs first — individual pixel planes are not loaded at that point. When
+`use_multiscale=True` (the default) the plugin also constructs a per-level
+pyramid so napari can render gigapixel planes without materialising layer 0.
+Disabling `use_lazy`, even with `use_dask=True`, still reads all pixels
+eagerly before wrapping the result in a Dask array.
 
 ## Current Limitations
 

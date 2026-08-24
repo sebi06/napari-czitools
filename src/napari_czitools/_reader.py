@@ -35,6 +35,8 @@ def reader_function_adv(
     planes: dict | None = None,
     show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
     use_lazy: bool = True,
+    use_multiscale: bool = True,
+    max_coarse_edge: int = 8192,
 ):
     """Take a path, add layers and metadata to the viewer.
 
@@ -57,6 +59,16 @@ def reader_function_adv(
         A dictionary specifying which planes to read from the CZI file.
     show_metadata : MetadataDisplayMode, optional
         The mode for displaying metadata in the viewer. Can be "Table" or "Tree" or "None".
+    use_multiscale : bool, optional
+        When True (default) and ``use_lazy`` is on, load the CZI as a
+        multiscale pyramid so napari renders gigapixel planes efficiently
+        from coarse-level tiles. Small files with no on-disk pyramid still
+        work — czitools returns a single-level "pyramid" and napari treats
+        it like a regular image.
+    max_coarse_edge : int, optional
+        Coarsest pyramid level's longest edge target in pixels. Passed to
+        ``read_stacks_multiscale``. Defaults to 8192 (safely under typical
+        16k GPU texture limits).
 
     Returns
     -------
@@ -78,6 +90,8 @@ def reader_function_adv(
         use_xarray=use_xarray,
         show_metadata=show_metadata,
         use_lazy=use_lazy,
+        use_multiscale=use_multiscale,
+        max_coarse_edge=max_coarse_edge,
     )
 
     # add the data to the viewer
@@ -129,16 +143,21 @@ def reader_function(
 
     for chl in channel_layers:
 
+        layer_kwargs: dict = {
+            "name": chl.name,
+            "scale": chl.scale,
+            "colormap": chl.colormap,
+            "blending": "additive",
+            "opacity": 0.85,
+        }
+        # Skip napari's auto-scan of the array data for large lazy stacks.
+        if chl.contrast_limits is not None:
+            layer_kwargs["contrast_limits"] = list(chl.contrast_limits)
+
         sample_data.append(
             (
                 chl.sub_array,
-                {
-                    "name": chl.name,
-                    "scale": chl.scale,
-                    "colormap": chl.colormap,
-                    "blending": "additive",
-                    "opacity": 0.85,
-                },
+                layer_kwargs,
                 "image",
             )
         )
