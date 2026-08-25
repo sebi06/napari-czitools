@@ -10,6 +10,7 @@
       - [Wellplate Data](#wellplate-data)
     - [Advanced CZI Reader (CziReadTools) plugin](#advanced-czi-reader-czireadtools-plugin)
       - [Lazy Loading](#lazy-loading)
+      - [Scene Tolerance](#scene-tolerance)
   - [Current Limitations](#current-limitations)
     - [Future plans](#future-plans)
   - [Contributing](#contributing)
@@ -143,6 +144,31 @@ The **Lazy Loading** checkbox is enabled by default. It controls which
   regular NumPy array in `STCZYX(A)` order. This eager path loads every
   selected plane into RAM and requires the selected scenes to have compatible
   shapes.
+
+#### Scene Tolerance
+
+When a file is selected the plugin reads the bounding rectangle of every scene
+and computes the maximum pixel difference in width and height across all scenes.
+If any difference is detected, a label appears next to the load controls:
+
+```
+Scene size diff — W: 72px  H: 9px
+```
+
+and the **Stack scenes** checkbox becomes enabled. Checking it re-evaluates the
+metadata with a tolerance equal to the computed maximum difference, which:
+
+1. **Unlocks the scene slider** so you can select any range of scenes.
+2. **Crops all scenes** to the smallest common W×H shape when pixel data is
+   loaded — no zero-padding is introduced.
+
+When the checkbox is unchecked (default), scenes must be pixel-identical to be
+stacked; files where scene sizes differ are limited to one scene at a time.
+
+This is particularly useful for **HCS plate CZIs** where each scene is a
+multi-tile mosaic covering one well: the per-well tile grids are assembled from
+stage coordinates independently, so the total pixel extent of each well can
+differ by tens of pixels even when the acquisition settings are identical.
 
 ##### Gigapixel CZIs (whole-slide, large 2D scans)
 

@@ -59,6 +59,8 @@ class CziReaderWidget(QWidget):
 
         self.sliders = SliderType(sliders)
         self.scenes_consistent = True  # Flag to track if scenes have consistent shapes
+        # Computed from bounding rectangles on file select; used as stacking tolerance.
+        self._scene_stack_tolerance = 0
 
         # create a layout
         self.main_layout = QVBoxLayout()
@@ -137,7 +139,27 @@ class CziReaderWidget(QWidget):
 
         self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
         self.main_layout.addItem(self.spacer_item)
-        # Add the Load Pixel Data button together with a Lazy Loading checkbox
+
+        # Stack-scenes row — visible only when scene sizes differ after a file is loaded.
+        stack_layout = QHBoxLayout()
+        self.stack_scenes_checkbox = QCheckBox("Stack scenes")
+        self.stack_scenes_checkbox.setChecked(False)
+        self.stack_scenes_checkbox.setEnabled(False)
+        self.stack_scenes_checkbox.setToolTip(
+            "Crop all scenes to the smallest common W\u00d7H and stack them into "
+            "one array. Enabled automatically when scene sizes differ."
+        )
+        self.stack_scenes_checkbox.stateChanged.connect(self._stack_scenes_changed)
+        stack_layout.addWidget(self.stack_scenes_checkbox)
+
+        # Shows the computed W/H size difference across scenes after a file is selected.
+        self.scene_diff_label = QLabel("")
+        self.scene_diff_label.setVisible(False)
+        stack_layout.addWidget(self.scene_diff_label)
+        stack_layout.addStretch()
+        self.main_layout.addLayout(stack_layout)
+
+        # Load Pixel Data button + Lazy Loading checkbox
         load_layout = QHBoxLayout()
         load_layout.addWidget(self.load_pixeldata.native)
 
@@ -223,6 +245,9 @@ class CziReaderWidget(QWidget):
         # check if scenes have identical shapes
         scenes_consistent = self.metadata.scene_shape_is_consistent
         self.scenes_consistent = scenes_consistent
+
+        # Compute actual W/H differences from bounding rectangles and update UI.
+        self._update_scene_diff_ui(filepath)
 
         # create a nested dictionary for the tree and a reduced dictionary for the table
         md_dict_tree = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
@@ -328,6 +353,62 @@ class CziReaderWidget(QWidget):
 
             # Ensure layout updates dynamically
             self.main_layout.update()
+
+    def _update_scene_diff_ui(self, filepath: str) -> None:
+        """Read scene bounding rectangles, compute W/H diffs, and update the stack-scenes UI."""
+        from pylibCZIrw import czi as pyczi
+        from czitools.utils.misc import get_pyczi_readertype
+
+        self._scene_stack_tolerance = 0
+        self.stack_scenes_checkbox.setChecked(False)
+        self.stack_scenes_checkbox.setEnabled(False)
+        self.scene_diff_label.setVisible(False)
+
+        try:
+            readertype, _ = get_pyczi_readertype(str(filepath))
+            with pyczi.open_czi(str(filepath), readertype) as czidoc:
+                rects = czidoc.scenes_bounding_rectangle
+                if len(rects) < 2:
+                    return
+                widths = [r.w for r in rects.values()]
+                heights = [r.h for r in rects.values()]
+        except Exception:
+            return
+
+        w_diff = max(widths) - min(widths)
+        h_diff = max(heights) - min(heights)
+
+        if w_diff == 0 and h_diff == 0:
+            return
+
+        # Store the tolerance needed to stack all scenes.
+        self._scene_stack_tolerance = max(w_diff, h_diff)
+        self.scene_diff_label.setText(f"Scene size diff — W: {w_diff}px  H: {h_diff}px")
+        self.scene_diff_label.setVisible(True)
+        self.stack_scenes_checkbox.setEnabled(True)
+
+    def _stack_scenes_changed(self) -> None:
+        """Re-evaluate metadata consistency and update the scene slider when checkbox is toggled."""
+        filepath = self.filename_edit.value
+        if not filepath:
+            return
+        tolerance = self._scene_stack_tolerance if self.stack_scenes_checkbox.isChecked() else 0
+        try:
+            self.metadata = CziMetadata(filepath, scene_shape_tolerance=tolerance)
+        except Exception:
+            return
+        self.scenes_consistent = self.metadata.scene_shape_is_consistent
+        size_s = getattr(self.metadata.image, "SizeS", None)
+        if size_s is None or size_s < 2:
+            return
+        if self.sliders == SliderType.TwoSliders:
+            self.scene_slider.min_slider.setEnabled(True)
+            self.scene_slider.max_slider.setEnabled(self.scenes_consistent)
+            self.scene_slider.min_slider.value = 0
+            self.scene_slider.max_slider.value = size_s - 1 if self.scenes_consistent else 0
+        elif self.sliders == SliderType.DoubleRangeSlider:
+            self.scene_slider.setProperty("single_value_mode", not self.scenes_consistent)
+            self.scene_slider.setHigh(size_s - 1 if self.scenes_consistent else 0)
 
     def _mdwidget_changed(self):
         """Callback for when the metadata display combo box changes."""
@@ -461,6 +542,7 @@ class CziReaderWidget(QWidget):
             # this is safe to enable by default whenever lazy is on.
             use_multiscale=use_lazy,
             show_metadata=MetadataDisplayMode.NONE,
+            scene_stack_tolerance=(self._scene_stack_tolerance if self.stack_scenes_checkbox.isChecked() else 0),
         )
 
     def _slider_type_changed(self, value):

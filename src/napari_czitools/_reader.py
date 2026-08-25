@@ -37,6 +37,7 @@ def reader_function_adv(
     use_lazy: bool = True,
     use_multiscale: bool = True,
     max_coarse_edge: int = 8192,
+    scene_stack_tolerance: int = 0,
 ):
     """Take a path, add layers and metadata to the viewer.
 
@@ -92,6 +93,7 @@ def reader_function_adv(
         use_lazy=use_lazy,
         use_multiscale=use_multiscale,
         max_coarse_edge=max_coarse_edge,
+        scene_stack_tolerance=scene_stack_tolerance,
     )
 
     # add the data to the viewer

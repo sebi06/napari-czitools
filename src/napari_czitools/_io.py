@@ -20,6 +20,7 @@ def read_stacks_compat(
     use_dask: bool,
     use_xarray: bool,
     planes: dict | None,
+    scene_stack_tolerance: int = 1,
 ) -> tuple[object, czimd.CziMetadata]:
     """Read stacks with compatibility across czitools return signatures."""
     # Convert to list so the type checker does not perform fixed-length
@@ -31,6 +32,7 @@ def read_stacks_compat(
             use_xarray=use_xarray,
             stack_scenes=True,
             planes=planes,
+            scene_stack_tolerance=scene_stack_tolerance,
         )
     )
 
@@ -50,6 +52,7 @@ def read_stacks_multiscale_compat(
     use_xarray: bool,
     planes: dict | None,
     max_coarse_edge: int = 8192,
+    scene_stack_tolerance: int = 1,
 ) -> tuple[list[object], czimd.CziMetadata, int]:
     """Read a CZI as a multiscale pyramid via czitools.
 
@@ -80,6 +83,7 @@ def read_stacks_multiscale_compat(
         stack_scenes=True,
         planes=planes,
         max_coarse_edge=max_coarse_edge,
+        scene_stack_tolerance=scene_stack_tolerance,
     )
     return list(result_levels), metadata, len(result_levels)
 
@@ -158,6 +162,7 @@ class CZIDataLoader:
         use_lazy: bool = True,
         use_multiscale: bool = True,
         max_coarse_edge: int = 8192,
+        scene_stack_tolerance: int = 0,
     ) -> None:
         self.path: str = path
         self.zoom: float = zoom
@@ -167,14 +172,9 @@ class CZIDataLoader:
         self.planes: dict = planes if planes is not None else {}
         self.show_metadata: MetadataDisplayMode = show_metadata
         self.use_lazy: bool = use_lazy
-        # When True and lazy mode is on, the plugin asks czitools for a
-        # multiscale pyramid so napari can render gigapixel planes from
-        # coarse-level tiles instead of materialising the whole 2D image.
         self.use_multiscale: bool = use_multiscale
-        # Coarsest pyramid level's longest edge target. Passed to
-        # read_stacks_multiscale; smaller values force additional synthetic
-        # coarse levels for GPU-safety on files that stop at a large level.
         self.max_coarse_edge: int = max_coarse_edge
+        self.scene_stack_tolerance: int = scene_stack_tolerance
 
     def add_to_viewer(self) -> None:
         """
@@ -228,6 +228,7 @@ class CZIDataLoader:
                 use_xarray=self.use_xarray,
                 planes=self.planes,
                 max_coarse_edge=self.max_coarse_edge,
+                scene_stack_tolerance=self.scene_stack_tolerance,
             )
             logger.info("CZIDataLoader: multiscale mode active with %d level(s).", num_levels)
             array6d = levels  # marker for the multiscale process_channels branch
@@ -240,6 +241,7 @@ class CZIDataLoader:
                 use_dask=True,
                 use_xarray=self.use_xarray,
                 planes=self.planes,
+                scene_stack_tolerance=self.scene_stack_tolerance,
             )
 
         if self.show_metadata == MetadataDisplayMode.TREE:
