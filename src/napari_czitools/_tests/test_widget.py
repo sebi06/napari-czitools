@@ -1,6 +1,9 @@
 import os
+from pathlib import Path
 
 import pytest
+from qtpy.QtCore import QMimeData, QPointF, Qt, QUrl
+from qtpy.QtGui import QDropEvent
 
 from napari_czitools._doublerange_slider import LabeledDoubleRangeSliderWidget
 from napari_czitools._range_widget import RangeSliderWidget
@@ -9,10 +12,7 @@ from napari_czitools._widget import (
 )
 
 # Check if we're running in a headless environment (like GitHub Actions)
-HEADLESS = (
-    os.environ.get("CI") == "true"
-    or os.environ.get("GITHUB_ACTIONS") == "true"
-)
+HEADLESS = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
 
 # Skip GUI tests in headless environments unless xvfb is available
 pytestmark = pytest.mark.skipif(
@@ -37,16 +37,37 @@ def test_czi_reader_widget_initialization(make_napari_viewer):
     # assert isinstance(widget.channel_slider, RangeSliderWidget)
     # assert isinstance(widget.z_slider, RangeSliderWidget)
 
-    assert isinstance(
-        widget.scene_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
-    )
-    assert isinstance(
-        widget.time_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
-    )
+    assert isinstance(widget.scene_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+    assert isinstance(widget.time_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
     assert isinstance(
         widget.channel_slider,
         RangeSliderWidget | LabeledDoubleRangeSliderWidget,
     )
-    assert isinstance(
-        widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
+    assert isinstance(widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+
+
+def test_czi_reader_widget_accepts_dropped_czi(qapp, tmp_path):
+    """Test that dropping one local CZI updates the file selection."""
+    filepath = tmp_path / "image.CZI"
+    filepath.touch()
+    widget = CziReaderWidget(object())
+    widget.filename_edit.line_edit.changed.disconnect(widget._file_changed)
+
+    mime_data = QMimeData()
+    mime_data.setUrls([QUrl.fromLocalFile(str(filepath))])
+    event = QDropEvent(
+        QPointF(1, 1),
+        Qt.DropAction.CopyAction,
+        mime_data,
+        Qt.MouseButton.LeftButton,
+        Qt.KeyboardModifier.NoModifier,
     )
+
+    handled = widget.eventFilter(
+        widget.filename_edit.line_edit.native,
+        event,
+    )
+
+    assert handled
+    assert Path(widget.filename_edit.value) == filepath
+    assert event.isAccepted()

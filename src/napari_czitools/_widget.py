@@ -9,6 +9,7 @@ Replace code below according to your needs.
 import contextlib
 import os
 from enum import Enum
+from pathlib import Path
 from typing import TYPE_CHECKING
 
 from czitools.metadata_tools import czi_metadata as czimd
@@ -16,6 +17,7 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.utils import logging_tools
 from magicgui.types import FileDialogMode
 from magicgui.widgets import ComboBox, FileEdit, PushButton
+from qtpy.QtCore import QEvent
 from qtpy.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
@@ -75,6 +77,12 @@ class CziReaderWidget(QWidget):
         self.filename_edit = FileEdit(mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension)
         file_layout.addWidget(self.filename_edit.native)
         self.filename_edit.line_edit.changed.connect(self._file_changed)
+        for drop_target in (
+            self.filename_edit.native,
+            self.filename_edit.line_edit.native,
+        ):
+            drop_target.setAcceptDrops(True)
+            drop_target.installEventFilter(self)
 
         # 2. ComboBox and Type Column Checkbox Section
         mdcombo_layout = QHBoxLayout()
@@ -216,6 +224,41 @@ class CziReaderWidget(QWidget):
 
         # set the layout
         self.setLayout(self.main_layout)
+
+    @staticmethod
+    def _czi_path_from_drop(event) -> Path | None:
+        """Return a valid CZI path from a Qt drag-and-drop event."""
+        mime_data = event.mimeData()
+        if not mime_data.hasUrls():
+            return None
+
+        urls = mime_data.urls()
+        if len(urls) != 1 or not urls[0].isLocalFile():
+            return None
+
+        filepath = Path(urls[0].toLocalFile())
+        if filepath.is_file() and filepath.suffix.lower() == ".czi":
+            return filepath
+        return None
+
+    def eventFilter(self, watched, event):
+        """Handle CZI files dropped on the file selection control."""
+        if watched in (
+            self.filename_edit.native,
+            self.filename_edit.line_edit.native,
+        ):
+            if event.type() == QEvent.Type.DragEnter:
+                if self._czi_path_from_drop(event) is not None:
+                    event.acceptProposedAction()
+                    return True
+            elif event.type() == QEvent.Type.Drop:
+                filepath = self._czi_path_from_drop(event)
+                if filepath is not None:
+                    self.filename_edit.value = filepath
+                    event.acceptProposedAction()
+                    return True
+
+        return super().eventFilter(watched, event)
 
     def _file_changed(self):
         """Callback for when the file edit changes."""
