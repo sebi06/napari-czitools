@@ -71,3 +71,21 @@ def test_czi_reader_widget_accepts_dropped_czi(qapp, tmp_path):
     assert handled
     assert Path(widget.filename_edit.value) == filepath
     assert event.isAccepted()
+
+
+def test_czi_reader_widget_persists_coarse_edge(qapp, mocker):
+    """The configured 3D coarse edge should persist and reach the reader."""
+    settings = mocker.patch("napari_czitools._widget.QSettings").return_value
+    settings.value.return_value = 1024
+    reader = mocker.patch("napari_czitools._widget.reader_function_adv")
+    widget = CziReaderWidget(object())
+    widget.filename_edit.line_edit.changed.disconnect(widget._file_changed)
+    widget.filename_edit.value = "test.czi"
+
+    assert widget.max_coarse_edge_spinbox.value() == 1024
+
+    widget.max_coarse_edge_spinbox.setValue(1536)
+    widget._loadbutton_pressed()
+
+    settings.setValue.assert_called_with("rendering/max_coarse_edge", 1536)
+    assert reader.call_args.kwargs["max_coarse_edge"] == 1536

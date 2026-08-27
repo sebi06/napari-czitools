@@ -53,7 +53,7 @@ You can install `napari-czitools` via [pip]:
 
     pip install napari-czitools
 
-The current release requires Python 3.12 or 3.13 and `czitools>=0.20.0`.
+The current release requires Python 3.12 or 3.13 and `czitools>=0.22.1`.
 
 To install latest development version :
 
@@ -185,10 +185,11 @@ pyramid levels (via `pylibCZIrw` subblock enumeration) and hands napari one
 lazy Dask array per level as `viewer.add_image(..., multiscale=True)`. This
 lets napari render the coarsest level immediately from a single GPU texture
 and stream finer tiles on zoom. If the coarsest stored level is still larger
-than the GPU texture limit (~16k px per edge), extra synthetic coarser
-levels are added on the fly using libCZI's C++ resampler. Files without any
-on-disk pyramid degrade transparently to a single-level "pyramid" and behave
-as before.
+than `DEFAULT_MAX_COARSE_EDGE` (2048 px), extra synthetic coarser levels are
+added on the fly using libCZI's C++ resampler. The conservative default fits
+the minimum broadly supported OpenGL 3D texture size; 2D texture limits are
+often much larger. Files without an on-disk pyramid are passed to napari as
+single-scale images when no additional level is needed.
 
 To keep opening these files usable, the plugin also passes an explicit
 `contrast_limits` argument to `viewer.add_image` (derived from the CZI's
@@ -201,6 +202,7 @@ plane in RAM before the first pixel is shown.
 The Python reader API forwards the same lazy behaviour:
 
 ```python
+from napari_czitools._io import DEFAULT_MAX_COARSE_EDGE
 from napari_czitools._reader import reader_function_adv
 
 reader_function_adv(
@@ -208,9 +210,15 @@ reader_function_adv(
     use_lazy=True,        # widget checkbox — read_stacks path
     use_dask=True,        # required for on-demand reads
     use_multiscale=True,  # napari renders coarse-level tiles first
-    max_coarse_edge=8192, # coarsest pyramid edge target (px)
+    max_coarse_edge=DEFAULT_MAX_COARSE_EDGE,
 )
 ```
+
+  `max_coarse_edge` is adjustable for programmatic use. Keep the default for
+  portable 3D rendering, lower it to reduce volume memory and VRAM use, or raise
+  it when the data will only be viewed in 2D and the GPU supports larger 2D
+  textures. The advanced reader widget exposes the same value as **3D coarse
+  edge** next to **Lazy Loading** and remembers it across napari sessions.
 
 With `use_lazy=True`, `czitools` reads the CZI metadata and builds Dask task
 graphs first — individual pixel planes are not loaded at that point. When
@@ -264,7 +272,7 @@ Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by ru
 
 ### Recent Compatibility Notes
 
-- `czitools>=0.20.0` is required.
+- `czitools>=0.22.1` is required.
 - `read_tools.read_stacks` returns
   `(arrays_or_list, dims, num_stacks, metadata)`. The plugin handles both a
   single stacked xarray object and a list containing one xarray stack per

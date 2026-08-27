@@ -14,6 +14,11 @@ from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
 
 logger = logging_tools.set_logging()
 
+# OpenGL guarantees at least 2048 pixels per 3D texture axis. Individual
+# systems may support more, but this default keeps generated coarse levels
+# portable and can be overridden through CZIDataLoader or reader_function_adv.
+DEFAULT_MAX_COARSE_EDGE = 2048
+
 
 def read_stacks_compat(
     path: str,
@@ -51,7 +56,7 @@ def read_stacks_multiscale_compat(
     path: str,
     use_xarray: bool,
     planes: dict | None,
-    max_coarse_edge: int = 8192,
+    max_coarse_edge: int = DEFAULT_MAX_COARSE_EDGE,
     scene_stack_tolerance: int = 1,
 ) -> tuple[list[object], czimd.CziMetadata, int]:
     """Read a CZI as a multiscale pyramid via czitools.
@@ -161,7 +166,7 @@ class CZIDataLoader:
         show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
         use_lazy: bool = True,
         use_multiscale: bool = True,
-        max_coarse_edge: int = 8192,
+        max_coarse_edge: int = DEFAULT_MAX_COARSE_EDGE,
         scene_stack_tolerance: int = 0,
     ) -> None:
         self.path: str = path
@@ -220,9 +225,8 @@ class CZIDataLoader:
             # process_channels_multiscale collapses that into per-channel
             # ChannelLayers whose sub_array is a list — the shape napari's
             # multiscale=True renderer expects. When the file has only one
-            # level (no on-disk pyramid), the list has length 1 and we still
-            # pass multiscale=True; napari treats a single-element list
-            # identically to a plain array.
+            # level (no on-disk pyramid), it is unwrapped before being passed
+            # to napari so 3D rendering can use napari's downsampling fallback.
             levels, metadata, num_levels = read_stacks_multiscale_compat(
                 self.path,
                 use_xarray=self.use_xarray,
@@ -272,18 +276,23 @@ class CZIDataLoader:
 
         for chl in channel_layers:
 
-            is_multiscale = isinstance(chl.sub_array, list)
+            is_multiscale = isinstance(chl.sub_array, list) and len(chl.sub_array) > 1
+            layer_data = (
+                chl.sub_array
+                if is_multiscale
+                else (chl.sub_array[0] if isinstance(chl.sub_array, list) else chl.sub_array)
+            )
             # For multiscale, napari expects the finest level first and uses
             # per-level shape ratios for coarse-level scaling. dims/axis
             # labels come from level 0 either way.
-            axis_source = chl.sub_array[0] if is_multiscale else chl.sub_array
+            axis_source = layer_data[0] if is_multiscale else layer_data
 
             # Passing an explicit ``contrast_limits`` prevents napari's
             # auto-scan, which would otherwise call ``.compute()`` on the
             # whole dask array and allocate the full plane in RAM for
             # gigapixel images.
             viewer.add_image(
-                chl.sub_array,
+                layer_data,
                 name=chl.name,
                 colormap=chl.colormap,
                 blending=chl.blending,

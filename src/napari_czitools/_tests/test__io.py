@@ -6,6 +6,7 @@ import xarray as xr
 from napari.utils.colormaps import Colormap
 
 from napari_czitools._io import (
+    DEFAULT_MAX_COARSE_EDGE,
     ChannelLayer,
     CZIDataLoader,
     MetadataDisplayMode,
@@ -79,6 +80,7 @@ def test_czidataloader_init_defaults():
     assert loader.use_xarray is True
     assert loader.planes == {}
     assert loader.show_metadata == MetadataDisplayMode.TABLE
+    assert loader.max_coarse_edge == DEFAULT_MAX_COARSE_EDGE
 
 
 def test_czidataloader_init_custom_params():
@@ -172,6 +174,51 @@ def test_add_to_viewer_logic(
         multiscale=False,
     )
     assert mock_viewer.dims.axis_labels == ("Z", "Y", "X")
+
+
+@patch("napari_czitools._io.process_channels_multiscale")
+@patch("napari_czitools._io.read_stacks_multiscale_compat")
+@patch("napari_czitools._io.napari.current_viewer")
+def test_add_to_viewer_unwraps_single_multiscale_level(
+    mock_current_viewer,
+    mock_read_multiscale,
+    mock_process_multiscale,
+    mock_xarray_data,
+    mock_metadata_object,
+    sample_colormap,
+):
+    """A one-level pyramid should use napari's single-scale renderer."""
+    mock_viewer = MagicMock()
+    mock_current_viewer.return_value = mock_viewer
+    mock_read_multiscale.return_value = (
+        [mock_xarray_data],
+        mock_metadata_object,
+        1,
+    )
+    mock_process_multiscale.return_value = [
+        ChannelLayer(
+            sub_array=[mock_xarray_data],
+            metadata=mock_metadata_object,
+            name="Channel",
+            scale=[1.0, 1.0],
+            colormap=sample_colormap,
+        )
+    ]
+
+    CZIDataLoader(
+        path="test.czi",
+        show_metadata=MetadataDisplayMode.NONE,
+    ).add_to_viewer()
+
+    mock_read_multiscale.assert_called_once_with(
+        "test.czi",
+        use_xarray=True,
+        planes={},
+        max_coarse_edge=2048,
+        scene_stack_tolerance=0,
+    )
+    assert mock_viewer.add_image.call_args.args[0] is mock_xarray_data
+    assert mock_viewer.add_image.call_args.kwargs["multiscale"] is False
 
 
 def test_process_channels_accepts_scene_list() -> None:

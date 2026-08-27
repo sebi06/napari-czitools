@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.2] - 2026-08-27
+
+### Added
+
+- Added drag-and-drop support for one local `.czi` file in the advanced
+	reader's file selector.
+- Added a persistent **3D coarse edge** setting to control the maximum edge of
+	generated coarse pyramid levels.
+- Added `pytest-mock` to the testing dependencies and activated the file-change
+	tests.
+
+### Changed
+
+- Updated the minimum required `czitools` version to `>=0.22.1`.
+- Centralized the conservative 2048-pixel coarse-edge default and documented
+	how Python callers can override it.
+
+### Fixed
+
+- Fixed 3D rendering for large Z-stacks by generating coarse pyramid levels
+	that fit broadly supported OpenGL 3D texture limits.
+- Single-level pyramids are now passed to napari as single-scale data so
+	napari can apply its own downsampling fallback.
+
 ## [0.12.1] - 2026-08-24
 
 ### Added

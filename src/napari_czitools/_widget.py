@@ -17,18 +17,20 @@ from czitools.metadata_tools.czi_metadata import CziMetadata
 from czitools.utils import logging_tools
 from magicgui.types import FileDialogMode
 from magicgui.widgets import ComboBox, FileEdit, PushButton
-from qtpy.QtCore import QEvent
+from qtpy.QtCore import QEvent, QSettings
 from qtpy.QtWidgets import (
     QCheckBox,
     QHBoxLayout,
     QLabel,
     QSizePolicy,
     QSpacerItem,
+    QSpinBox,
     QVBoxLayout,
     QWidget,
 )
 
 from ._doublerange_slider import LabeledDoubleRangeSliderWidget
+from ._io import DEFAULT_MAX_COARSE_EDGE
 from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
 from ._range_widget import RangeSliderWidget
 from ._reader import reader_function_adv
@@ -175,6 +177,27 @@ class CziReaderWidget(QWidget):
         # default to True to preserve existing lazy-loading behavior
         self.lazy_loading_checkbox.setChecked(True)
         load_layout.addWidget(self.lazy_loading_checkbox)
+
+        self._settings = QSettings("napari-czitools", "napari-czitools")
+        load_layout.addWidget(QLabel("3D coarse edge:"))
+        self.max_coarse_edge_spinbox = QSpinBox()
+        self.max_coarse_edge_spinbox.setRange(256, 16384)
+        self.max_coarse_edge_spinbox.setSingleStep(256)
+        self.max_coarse_edge_spinbox.setSuffix(" px")
+        self.max_coarse_edge_spinbox.setToolTip(
+            "Maximum Y/X edge of the coarsest pyramid level. Lower values "
+            "reduce 3D memory use; 2048 is portable across OpenGL GPUs."
+        )
+        saved_coarse_edge = self._settings.value(
+            "rendering/max_coarse_edge",
+            DEFAULT_MAX_COARSE_EDGE,
+            type=int,
+        )
+        self.max_coarse_edge_spinbox.setValue(saved_coarse_edge)
+        self.max_coarse_edge_spinbox.valueChanged.connect(
+            lambda value: self._settings.setValue("rendering/max_coarse_edge", value)
+        )
+        load_layout.addWidget(self.max_coarse_edge_spinbox)
 
         self.main_layout.addLayout(load_layout)
 
@@ -584,6 +607,7 @@ class CziReaderWidget(QWidget):
             # no on-disk pyramid transparently degrade to a single level, so
             # this is safe to enable by default whenever lazy is on.
             use_multiscale=use_lazy,
+            max_coarse_edge=self.max_coarse_edge_spinbox.value(),
             show_metadata=MetadataDisplayMode.NONE,
             scene_stack_tolerance=(self._scene_stack_tolerance if self.stack_scenes_checkbox.isChecked() else 0),
         )

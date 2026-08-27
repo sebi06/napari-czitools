@@ -4,7 +4,12 @@ from napari.types import LayerDataTuple
 
 from napari_czitools._metadata_widget import MetadataDisplayMode
 
-from ._io import CZIDataLoader, process_channels, read_stacks_compat
+from ._io import (
+    DEFAULT_MAX_COARSE_EDGE,
+    CZIDataLoader,
+    process_channels,
+    read_stacks_compat,
+)
 
 logger = logging_tools.set_logging()
 
@@ -36,7 +41,7 @@ def reader_function_adv(
     show_metadata: MetadataDisplayMode = MetadataDisplayMode.TABLE,
     use_lazy: bool = True,
     use_multiscale: bool = True,
-    max_coarse_edge: int = 8192,
+    max_coarse_edge: int = DEFAULT_MAX_COARSE_EDGE,
     scene_stack_tolerance: int = 0,
 ):
     """Take a path, add layers and metadata to the viewer.
@@ -68,8 +73,8 @@ def reader_function_adv(
         it like a regular image.
     max_coarse_edge : int, optional
         Coarsest pyramid level's longest edge target in pixels. Passed to
-        ``read_stacks_multiscale``. Defaults to 8192 (safely under typical
-        16k GPU texture limits).
+        ``read_stacks_multiscale``. Defaults to 2048 so the coarsest level
+        fits the broadly supported OpenGL 3D texture limit.
 
     Returns
     -------
