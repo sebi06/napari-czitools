@@ -39,6 +39,7 @@ testing = [
     "tox",
     "pytest",
     "pytest-cov",
+    "pytest-mock",
     "pytest-qt",
     "pytest-timeout",
     "pytest-forked",  # Required to trying prevent CZI + Qt Abort crashes on some Linux systems
