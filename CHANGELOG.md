@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.12.3] - 2026-08-28
+
 ### Changed
 
 - Removed the **Lazy Loading** checkbox from the advanced reader. Pixel data
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 	single-position dimension sliders.
 - Kept the **Slider Type** selector above the metadata area when switching
 	between table and tree views.
+- Refreshed the README and screenshots for the current advanced reader workflow and clarified **3D preview size**.
 
 ## [0.12.2] - 2026-08-27
 
