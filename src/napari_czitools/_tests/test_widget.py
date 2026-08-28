@@ -8,6 +8,7 @@ from qtpy.QtGui import QDropEvent
 from napari_czitools._doublerange_slider import LabeledDoubleRangeSliderWidget
 from napari_czitools._range_widget import RangeSliderWidget
 from napari_czitools._widget import (
+    MAX_DOCK_WIDTH,
     CziReaderWidget,
 )
 
@@ -49,6 +50,31 @@ def test_czi_reader_widget_initialization(make_napari_viewer):
         RangeSliderWidget | LabeledDoubleRangeSliderWidget,
     )
     assert isinstance(widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+
+
+def test_czi_reader_widget_allows_wide_dock(qapp):
+    """The widget and its dock container should permit wide layouts."""
+    from qtpy.QtWidgets import QDockWidget, QSizePolicy
+
+    dock = QDockWidget()
+    widget = CziReaderWidget(object())
+    dock.setWidget(widget)
+
+    dock.show()
+    qapp.processEvents()
+    initial_widget_y = widget.geometry().y()
+
+    widget.scene_slider.hide()
+    widget.time_slider.hide()
+    qapp.processEvents()
+
+    assert widget.maximumWidth() == MAX_DOCK_WIDTH
+    assert dock.maximumWidth() == MAX_DOCK_WIDTH
+    assert widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
+    assert dock.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
+    assert widget.sizePolicy().verticalPolicy() == QSizePolicy.Policy.Expanding
+    assert dock.sizePolicy().verticalPolicy() == QSizePolicy.Policy.Expanding
+    assert widget.geometry().y() == initial_widget_y
 
 
 def test_czi_reader_widget_accepts_dropped_czi(qapp, tmp_path):

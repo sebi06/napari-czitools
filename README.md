@@ -11,6 +11,8 @@
     - [Advanced CZI Reader (CziReadTools) plugin](#advanced-czi-reader-czireadtools-plugin)
       - [Lazy Loading](#lazy-loading)
       - [Scene Tolerance](#scene-tolerance)
+        - [Gigapixel CZIs (whole-slide, large 2D scans)](#gigapixel-czis-whole-slide-large-2d-scans)
+        - [Advanced Python usage](#advanced-python-usage)
   - [Current Limitations](#current-limitations)
     - [Future plans](#future-plans)
   - [Contributing](#contributing)
@@ -136,6 +138,12 @@ Data** is pressed. It requests Dask-backed xarray stacks for the selected
 scene, time, channel, and Z ranges, so pixel tiles are read only when napari
 needs them. This avoids loading the complete selection into RAM, supports
 differently sized scenes, and enables efficient 3D previews.
+
+The right-hand reader panel can expand to 8192 pixels for wide metadata tables
+and controls. Its docked width is still limited by the available napari window;
+float the panel or enlarge the main window when more horizontal space is needed.
+The panel also remains aligned to the top when metadata hides dimensions that
+contain only one position; the metadata table expands into the available space.
 
 Python callers can still pass `use_lazy=False` to `CZIDataLoader` or
 `reader_function_adv` when they explicitly need the eager `read_6darray` path.

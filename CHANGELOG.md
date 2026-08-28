@@ -12,6 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Removed the **Lazy Loading** checkbox from the advanced reader. Pixel data
 	now always uses the recommended lazy multiscale path; eager loading remains
 	available through the Python API.
+- Increased the advanced reader dock's horizontal expansion limit to 8192
+	pixels for wide metadata tables and controls.
+- Prevented the reader controls from jumping downward when metadata hides
+	single-position dimension sliders.
+- Kept the **Slider Type** selector above the metadata area when switching
+	between table and tree views.
 
 ## [0.12.2] - 2026-08-27
 

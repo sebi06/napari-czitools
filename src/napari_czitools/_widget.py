@@ -20,10 +20,10 @@ from magicgui.widgets import ComboBox, FileEdit, PushButton
 from qtpy.QtCore import QEvent, QSettings
 from qtpy.QtWidgets import (
     QCheckBox,
+    QDockWidget,
     QHBoxLayout,
     QLabel,
     QSizePolicy,
-    QSpacerItem,
     QSpinBox,
     QVBoxLayout,
     QWidget,
@@ -37,6 +37,8 @@ from ._reader import reader_function_adv
 from ._utilities import _convert_numpy_types
 
 logger = logging_tools.set_logging()
+
+MAX_DOCK_WIDTH = 8192
 
 if TYPE_CHECKING:
     import napari
@@ -140,7 +142,6 @@ class CziReaderWidget(QWidget):
         self.mdtree.setMinimumHeight(400)  # Set minimum height for the table
 
         self.current_md_widget = self.mdtable
-        self.spacer_item = QSpacerItem(100, 1, QSizePolicy.Minimum, QSizePolicy.Expanding)
 
         # Add all widgets to the main layout
         self.main_layout.addLayout(file_layout)  # Add FileDialog section
@@ -148,7 +149,6 @@ class CziReaderWidget(QWidget):
         self.main_layout.addLayout(slider_layout)  # Add Slider Type section
 
         self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
-        self.main_layout.addItem(self.spacer_item)
 
         # Stack-scenes row — visible only when scene sizes differ after a file is loaded.
         stack_layout = QHBoxLayout()
@@ -250,6 +250,21 @@ class CziReaderWidget(QWidget):
 
         # set the layout
         self.setLayout(self.main_layout)
+
+    def showEvent(self, event) -> None:
+        """Allow the reader and its napari dock to fill available space."""
+        super().showEvent(event)
+
+        widget = self
+        while widget is not None:
+            size_policy = widget.sizePolicy()
+            size_policy.setHorizontalPolicy(QSizePolicy.Policy.Expanding)
+            size_policy.setVerticalPolicy(QSizePolicy.Policy.Expanding)
+            widget.setSizePolicy(size_policy)
+            widget.setMaximumWidth(MAX_DOCK_WIDTH)
+            if isinstance(widget, QDockWidget):
+                break
+            widget = widget.parentWidget()
 
     @staticmethod
     def _czi_path_from_drop(event) -> Path | None:
@@ -501,8 +516,8 @@ class CziReaderWidget(QWidget):
             # Hide the type column checkbox when table is selected
             self.type_column_checkbox.hide()
 
-        # Add the new widget to the layout
-        self.main_layout.insertWidget(2, self.current_md_widget)
+        # Keep metadata below the file, display, and slider-type rows.
+        self.main_layout.insertWidget(3, self.current_md_widget)
         self.current_md_widget.show()
 
     def _reset_metadata_widgets(self):

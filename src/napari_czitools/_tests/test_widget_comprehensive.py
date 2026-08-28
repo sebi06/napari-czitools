@@ -114,22 +114,14 @@ class TestMetadataDisplayModeChanges:
         # Initially should be showing table
         assert widget.current_md_widget == widget.mdtable
 
-        # Mock the UI methods to focus on logic testing
-        widget.main_layout.removeWidget = Mock()
-        widget.main_layout.insertWidget = Mock()
-        widget.mdtable.hide = Mock()
-        widget.mdtree.show = Mock()
-        widget.type_column_checkbox.show = Mock()
-        widget.type_column_checkbox.hide = Mock()
-
         # Change to tree view
         widget.mdata_widget.value = "Tree"
         widget._mdwidget_changed()
 
         # Verify tree is now current
         assert widget.current_md_widget == widget.mdtree
-        # Verify show() was called on the checkbox
-        widget.type_column_checkbox.show.assert_called()
+        assert widget.type_column_checkbox.isVisibleTo(widget)
+        assert widget.main_layout.indexOf(widget.mdtree) == 3
 
     def test_mdwidget_changed_tree_to_table(self, widget_with_double_sliders):
         """
