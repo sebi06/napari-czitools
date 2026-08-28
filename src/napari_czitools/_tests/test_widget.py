@@ -31,6 +31,11 @@ def test_czi_reader_widget_initialization(make_napari_viewer):
     # FileEdit widget may initialize with current directory as default
     assert widget.filename_edit.value is not None
     assert widget.mdata_widget.value == "Table"
+    assert widget.load_pixeldata.enabled is False
+    assert not hasattr(widget, "lazy_loading_checkbox")
+    assert widget.max_coarse_edge_label.text() == "3D preview size:"
+    assert widget.max_coarse_edge_spinbox.isEnabled() is False
+    assert "GPU memory" in widget.max_coarse_edge_spinbox.toolTip()
 
     # assert isinstance(widget.scene_slider, RangeSliderWidget)
     # assert isinstance(widget.time_slider, RangeSliderWidget)
@@ -74,7 +79,7 @@ def test_czi_reader_widget_accepts_dropped_czi(qapp, tmp_path):
 
 
 def test_czi_reader_widget_persists_coarse_edge(qapp, mocker):
-    """The configured 3D coarse edge should persist and reach the reader."""
+    """The configured 3D preview size should persist and reach the reader."""
     settings = mocker.patch("napari_czitools._widget.QSettings").return_value
     settings.value.return_value = 1024
     reader = mocker.patch("napari_czitools._widget.reader_function_adv")
@@ -89,3 +94,6 @@ def test_czi_reader_widget_persists_coarse_edge(qapp, mocker):
 
     settings.setValue.assert_called_with("rendering/max_coarse_edge", 1536)
     assert reader.call_args.kwargs["max_coarse_edge"] == 1536
+    assert reader.call_args.kwargs["use_lazy"] is True
+    assert reader.call_args.kwargs["use_dask"] is True
+    assert reader.call_args.kwargs["use_multiscale"] is True

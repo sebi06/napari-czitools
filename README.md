@@ -131,19 +131,16 @@ Select the plugin to show the UI in the right panel of the Napari UI via "Plugin
 
 #### Lazy Loading
 
-The **Lazy Loading** checkbox is enabled by default. It controls which
-`czitools` reader is used after **Load Pixel Data** is pressed:
+The advanced reader always uses lazy multiscale loading after **Load Pixel
+Data** is pressed. It requests Dask-backed xarray stacks for the selected
+scene, time, channel, and Z ranges, so pixel tiles are read only when napari
+needs them. This avoids loading the complete selection into RAM, supports
+differently sized scenes, and enables efficient 3D previews.
 
-- **Enabled:** the plugin calls `read_tools.read_stacks` with `use_dask=True`
-  and the selected scene, time, channel, and Z ranges. This scene-aware path
-  returns Dask-backed xarray stacks — one per equal-sized scene group, or a
-  list when scene shapes differ. Pixel planes are read only when napari asks
-  for them. The plugin creates one napari image layer per channel and appends
-  a scene suffix to layer names when separate scene stacks are returned.
-- **Disabled:** the plugin calls `read_tools.read_6darray` and constructs one
-  regular NumPy array in `STCZYX(A)` order. This eager path loads every
-  selected plane into RAM and requires the selected scenes to have compatible
-  shapes.
+Python callers can still pass `use_lazy=False` to `CZIDataLoader` or
+`reader_function_adv` when they explicitly need the eager `read_6darray` path.
+That path constructs one regular array in `STCZYX(A)` order, loads every
+selected plane into RAM, and requires compatible scene shapes.
 
 #### Scene Tolerance
 
@@ -217,8 +214,9 @@ reader_function_adv(
   `max_coarse_edge` is adjustable for programmatic use. Keep the default for
   portable 3D rendering, lower it to reduce volume memory and VRAM use, or raise
   it when the data will only be viewed in 2D and the GPU supports larger 2D
-  textures. The advanced reader widget exposes the same value as **3D coarse
-  edge** next to **Lazy Loading** and remembers it across napari sessions.
+  textures. The advanced reader widget exposes the same value as **3D preview
+  size** above **Load Pixel Data** and remembers it across napari sessions. The
+  setting becomes available after the selected file's metadata is loaded.
 
 With `use_lazy=True`, `czitools` reads the CZI metadata and builds Dask task
 graphs first — individual pixel planes are not loaded at that point. When

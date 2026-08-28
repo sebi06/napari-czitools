@@ -188,9 +188,9 @@ test branch rather than documenting an obsolete package range.
        `xarray.DataArray`; differently sized scenes remain a list containing
        one `xarray.DataArray` per scene. Code that processes reader output must
        accept both shapes.
-- The widget's **Lazy Loading** checkbox selects `read_stacks` instead of
-       `read_6darray` and now forwards `use_dask=True` alongside `use_lazy`.
-       For genuine on-demand pixel reads both flags must be True together.
+- The advanced reader widget always selects lazy multiscale loading and
+       forwards `use_lazy=True`, `use_dask=True`, and `use_multiscale=True`.
+       The eager `read_6darray` path remains available to Python callers.
        `read_6darray(..., use_dask=True)` still reads pixels eagerly before
        wrapping the result — only `read_stacks` provides a truly lazy path.
 - For gigapixel CZIs (single 2D planes larger than ~256 MB uncompressed) the

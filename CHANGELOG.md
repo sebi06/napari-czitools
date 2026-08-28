@@ -7,13 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Removed the **Lazy Loading** checkbox from the advanced reader. Pixel data
+	now always uses the recommended lazy multiscale path; eager loading remains
+	available through the Python API.
+
 ## [0.12.2] - 2026-08-27
 
 ### Added
 
 - Added drag-and-drop support for one local `.czi` file in the advanced
 	reader's file selector.
-- Added a persistent **3D coarse edge** setting to control the maximum edge of
+- Added a persistent **3D preview size** setting to control the maximum edge of
 	generated coarse pyramid levels.
 - Added `pytest-mock` to the testing dependencies and activated the file-change
 	tests.

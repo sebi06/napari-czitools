@@ -169,25 +169,22 @@ class CziReaderWidget(QWidget):
         stack_layout.addStretch()
         self.main_layout.addLayout(stack_layout)
 
-        # Load Pixel Data button + Lazy Loading checkbox
-        load_layout = QHBoxLayout()
-        load_layout.addWidget(self.load_pixeldata.native)
-
-        self.lazy_loading_checkbox = QCheckBox("Lazy Loading")
-        # default to True to preserve existing lazy-loading behavior
-        self.lazy_loading_checkbox.setChecked(True)
-        load_layout.addWidget(self.lazy_loading_checkbox)
-
         self._settings = QSettings("napari-czitools", "napari-czitools")
-        load_layout.addWidget(QLabel("3D coarse edge:"))
+
+        # 3D preview setting
+        preview_layout = QHBoxLayout()
+        self.max_coarse_edge_label = QLabel("3D preview size:")
+        preview_tooltip = (
+            "Maximum width or height of the first 3D preview level. "
+            "Lower values use less GPU memory; 2048 px works well on most GPUs."
+        )
+        self.max_coarse_edge_label.setToolTip(preview_tooltip)
+        preview_layout.addWidget(self.max_coarse_edge_label)
         self.max_coarse_edge_spinbox = QSpinBox()
         self.max_coarse_edge_spinbox.setRange(256, 16384)
         self.max_coarse_edge_spinbox.setSingleStep(256)
         self.max_coarse_edge_spinbox.setSuffix(" px")
-        self.max_coarse_edge_spinbox.setToolTip(
-            "Maximum Y/X edge of the coarsest pyramid level. Lower values "
-            "reduce 3D memory use; 2048 is portable across OpenGL GPUs."
-        )
+        self.max_coarse_edge_spinbox.setToolTip(preview_tooltip)
         saved_coarse_edge = self._settings.value(
             "rendering/max_coarse_edge",
             DEFAULT_MAX_COARSE_EDGE,
@@ -197,9 +194,15 @@ class CziReaderWidget(QWidget):
         self.max_coarse_edge_spinbox.valueChanged.connect(
             lambda value: self._settings.setValue("rendering/max_coarse_edge", value)
         )
-        load_layout.addWidget(self.max_coarse_edge_spinbox)
+        preview_layout.addWidget(self.max_coarse_edge_spinbox)
+        preview_layout.addStretch()
+        self.main_layout.addLayout(preview_layout)
 
+        # Pixel data is always loaded lazily from the widget.
+        load_layout = QHBoxLayout()
+        load_layout.addWidget(self.load_pixeldata.native)
         self.main_layout.addLayout(load_layout)
+        self._set_load_controls_enabled(False)
 
         # Define Dimension slider configurations
         slider_configs = [
@@ -294,8 +297,8 @@ class CziReaderWidget(QWidget):
         # Reset range sliders to default state
         self._reset_range_sliders()
 
-        # Disable the load pixel data button until new metadata is loaded
-        self.load_pixeldata.enabled = False
+        # Disable loading controls until new metadata is loaded
+        self._set_load_controls_enabled(False)
 
         # If filepath is empty, just leave the widgets reset
         if not filepath:
@@ -375,8 +378,8 @@ class CziReaderWidget(QWidget):
             if not self.scenes_consistent:
                 self.scene_slider.lock_values(0, 0)
 
-            # Enable the load pixel data button
-            self.load_pixeldata.enabled = True
+            # Enable loading controls
+            self._set_load_controls_enabled(True)
 
             # Ensure layout updates dynamically
             self.main_layout.update()
@@ -414,11 +417,17 @@ class CziReaderWidget(QWidget):
             if not self.scenes_consistent:
                 self.scene_slider.setProperty("single_value_mode", True)
 
-            # Enable the load pixel data button
-            self.load_pixeldata.enabled = True
+            # Enable loading controls
+            self._set_load_controls_enabled(True)
 
             # Ensure layout updates dynamically
             self.main_layout.update()
+
+    def _set_load_controls_enabled(self, enabled: bool) -> None:
+        """Keep pixel-loading options synchronized with the load button."""
+        self.load_pixeldata.enabled = enabled
+        self.max_coarse_edge_label.setEnabled(enabled)
+        self.max_coarse_edge_spinbox.setEnabled(enabled)
 
     def _update_scene_diff_ui(self, filepath: str) -> None:
         """Read scene bounding rectangles, compute W/H diffs, and update the stack-scenes UI."""
@@ -594,19 +603,13 @@ class CziReaderWidget(QWidget):
             os.path.basename(self.filename_edit.value),
             planes,
         )
-        use_lazy = self.lazy_loading_checkbox.isChecked()
         reader_function_adv(
             self.filename_edit.value,
             zoom=1.0,
             planes=planes,
-            use_lazy=use_lazy,
-            # dask is required for true lazy reading; enable it automatically
-            use_dask=use_lazy,
-            # Multiscale rides on lazy mode: for gigapixel CZIs it lets napari
-            # render coarse-level tiles instead of the full plane. Files with
-            # no on-disk pyramid transparently degrade to a single level, so
-            # this is safe to enable by default whenever lazy is on.
-            use_multiscale=use_lazy,
+            use_lazy=True,
+            use_dask=True,
+            use_multiscale=True,
             max_coarse_edge=self.max_coarse_edge_spinbox.value(),
             show_metadata=MetadataDisplayMode.NONE,
             scene_stack_tolerance=(self._scene_stack_tolerance if self.stack_scenes_checkbox.isChecked() else 0),

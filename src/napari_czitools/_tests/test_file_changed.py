@@ -88,3 +88,5 @@ def test_file_changed_enables_load_pixeldata_button(qtbot, mocker):
     widget.filename_edit.value = "test_file.czi"
 
     assert widget.load_pixeldata.enabled
+    assert widget.max_coarse_edge_label.isEnabled()
+    assert widget.max_coarse_edge_spinbox.isEnabled()
