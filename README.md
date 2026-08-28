@@ -1,3 +1,5 @@
+# napari-czitools
+
 - [napari-czitools](#napari-czitools)
   - [Installation](#installation)
   - [Supported Operating Systems](#supported-operating-systems)
@@ -9,10 +11,14 @@
       - [AiryScan 3D Stack](#airyscan-3d-stack)
       - [Wellplate Data](#wellplate-data)
     - [Advanced CZI Reader (CziReadTools) plugin](#advanced-czi-reader-czireadtools-plugin)
+      - [General Usage](#general-usage)
+      - [After Metadata Loads](#after-metadata-loads)
+      - [Reading a subset](#reading-a-subset)
+      - [3D Preview Size](#3d-preview-size)
       - [Lazy Loading](#lazy-loading)
       - [Scene Tolerance](#scene-tolerance)
-        - [Gigapixel CZIs (whole-slide, large 2D scans)](#gigapixel-czis-whole-slide-large-2d-scans)
-        - [Advanced Python usage](#advanced-python-usage)
+      - [Gigapixel CZIs (whole-slide, large 2D scans)](#gigapixel-czis-whole-slide-large-2d-scans)
+      - [Advanced Python usage](#advanced-python-usage)
   - [Current Limitations](#current-limitations)
     - [Future plans](#future-plans)
   - [Contributing](#contributing)
@@ -20,9 +26,7 @@
     - [Recent Compatibility Notes](#recent-compatibility-notes)
   - [License](#license)
   - [Issues](#issues)
-- [Disclaimer](#disclaimer)
-
-# napari-czitools
+  - [Disclaimer](#disclaimer)
 
 [![License MIT](https://img.shields.io/pypi/l/napari-czitools.svg?color=green)](https://github.com/sebi06/napari-czitools/raw/main/LICENSE)
 [![PyPI](https://img.shields.io/pypi/v/napari-czitools.svg?color=green)](https://pypi.org/project/napari-czitools)
@@ -33,7 +37,7 @@
 [![npe2](https://img.shields.io/badge/plugin-npe2-blue?link=https://napari.org/stable/plugins/index.html)](https://napari.org/stable/plugins/index.html)
 [![Copier](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/copier-org/copier/master/img/badge/badge-grayscale-inverted-border-purple.json)](https://github.com/copier-org/copier)
 
-Plugin to read CZI image file and metadata
+napari plugin for reading CZI image data and metadata.
 
 ----------------------------------
 
@@ -71,16 +75,18 @@ The test suite runs on Python 3.12 and 3.13 for:
 
 ## Usage - Core Functionalities
 
-The plugin provides a reader for CZI files and allows to load the image data into [napari]. It also reads the metadata from the CZI file and displays it in the metadata panel of [napari].
+The plugin reads CZI image data into [napari] and displays the associated
+metadata in a table or tree.
 
 ### Open Complete CZI Files
 
-- Open complete CZI Files and display the metadata in Napari using the [czitools] package
+- Open complete CZI files and display their metadata in napari using [czitools].
 
 ![Open complete CZI file](https://github.com/sebi06/napari-czitools/raw/main/readme_images/file_open_mdtable_lls7.png)
 
-- Open different CZI Image sample data
-- if not found locally in current directory `../src/napari_czitools/sample_data` it will be opened from remote repository (might be slow)
+- Open different CZI sample datasets.
+- If sample data are unavailable locally, they are downloaded from the remote
+  repository, which may take some time.
 
 ![Open sample data](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample1.png)
 
@@ -100,36 +106,76 @@ The plugin provides a reader for CZI files and allows to load the image data int
 
 #### Wellplate Data
 
-![Sample Data - Wellpate](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample_wellplate.png)
+![Sample Data - Wellplate](https://github.com/sebi06/napari-czitools/raw/main/readme_images/open_sample_wellplate.png)
 
 ### Advanced CZI Reader (CziReadTools) plugin
 
-Select the plugin to show the UI in the right panel of the Napari UI via "Plugins > Advanced CZI Reader (CziReadTools)"
+#### General Usage
 
-1) Select the CZI file to read its metadata
-2) Once the metadata are read the display can be toggled between a **table** and a **tree view**
-3) The metadata will update the dimension range sliders (powered by [superqt]'s `QLabeledRangeSlider`) and enable reading the pixel data
+Open **Plugins > Advanced CZI Reader (CziReadTools)**. The initial panel has
+four main areas:
 
-<img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv1.png" alt="Advanced CZI Reader - Plugin" style="width:30%; height:auto;">
+1. Select a local CZI file. Drag and drop onto the file field is also supported.
+2. Inspect metadata as a table or tree. Tree view can optionally show value
+  types.
+3. Configure scene handling and the 3D preview, then load the selected pixels.
+4. Select scene, time, channel, and Z ranges. Dimensions with only one position
+  are hidden after metadata loads.
 
-1) Metadata will be shown as a **table** or as a **tree view**
-2) The **Load Pixel Data** button will be enabled once the metadata is read
-3) The **Dimension Sliders** (using [superqt]'s dual-handle range slider) will be enabled and allow to select a range to be read for all available dimensions. Both handles can be set to the same value for single-slice selection (e.g. 3-3)
+<!-- markdownlint-disable-next-line MD033 -->
+<img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv1.png" alt="Advanced CZI Reader before selecting a file" style="width:40%; height:auto;">
 
-<img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv2.png" alt="Advanced CZI Reader - Plugin" style="width:80%; height:auto;">
+#### After Metadata Loads
 
-- The dimension range sliders (from [superqt]) allow to define the size of a CZI subset to be read
-- This allows to read parts of a CZI image dataset
-- Important - when reading a subset the metadata will still reflects the size of the complete CZI
+Selecting a valid CZI file reads metadata but does not load its pixel data. The
+metadata view, **Load Pixel Data**, **3D preview size**, and applicable dimension
+sliders then become available. **Stack scenes** remains disabled unless the CZI
+contains multiple scenes with different pixel dimensions.
 
-![Advanced CZI Reader - Plugin](https://github.com/sebi06/napari-czitools/raw/main/readme_images/load_pixel1.png)
+Use **Slider Type** to switch between a dual-handle range slider and separate
+minimum/maximum sliders. Setting both endpoints to the same value selects one
+position, for example `T=3-3`.
 
-- Example for reading a subset
-  - Timepoints (4-7): 4 slices or T=4
-  - Channels (0-0): 1 slice or CH=1
-  - Z-Plane (7-10): 4 slices or Z=4
+<!-- markdownlint-disable-next-line MD033 -->
+<img src="https://github.com/sebi06/napari-czitools/raw/main/readme_images/reader_adv2.png" alt="Table and tree metadata views with both slider layouts" style="width:85%; height:auto;">
 
-![Advanced CZI Reader - Plugin](https://github.com/sebi06/napari-czitools/raw/main/readme_images/load_pixel2.png)
+#### Reading a subset
+
+- Use the dimension sliders to select the scene, time, channel, and Z positions
+  to load.
+- The displayed metadata continue to describe the complete CZI, not only the
+  selected subset.
+
+![Selecting a CZI subset](https://github.com/sebi06/napari-czitools/raw/main/readme_images/load_pixel1.png)
+
+For example, selecting timepoints 4-7, channel 0-0, and Z-planes 7-10
+loads four timepoints, one channel, and four Z-planes.
+
+![Loaded CZI subset in napari](https://github.com/sebi06/napari-czitools/raw/main/readme_images/load_pixel2.png)
+
+#### 3D Preview Size
+
+**3D preview size** sets the target maximum width or height, in pixels, of the
+coarsest pyramid level sent to napari. The default is **2048 px**, a conservative
+size that fits the minimum broadly supported OpenGL 3D texture limit.
+
+This setting does **not** crop the image, change the selected S/T/C/Z ranges, or
+reduce the resolution of the finest source level. If the coarsest pyramid level
+stored in the CZI is already at or below the selected size, nothing additional
+is generated. If it is larger, `czitools` lazily adds half-resolution levels
+until the longest Y/X edge fits the target.
+
+- Use a lower value to reduce GPU memory use and improve compatibility with
+  older GPUs. The first overview will contain less spatial detail.
+- Keep **2048 px** for portable 3D rendering in most cases.
+- Use a higher value only when more preview detail is useful and the GPU
+  supports larger textures. Higher values can use more GPU memory.
+
+The value is saved between napari sessions and becomes editable after valid CZI
+metadata loads. For small images, changing it often has no visible effect
+because the existing coarsest level already fits.
+
+![3D rendering with the 3D preview size control](https://github.com/sebi06/napari-czitools/raw/main/readme_images/3D_preview_size.png)
 
 #### Lazy Loading
 
@@ -138,12 +184,6 @@ Data** is pressed. It requests Dask-backed xarray stacks for the selected
 scene, time, channel, and Z ranges, so pixel tiles are read only when napari
 needs them. This avoids loading the complete selection into RAM, supports
 differently sized scenes, and enables efficient 3D previews.
-
-The right-hand reader panel can expand to 8192 pixels for wide metadata tables
-and controls. Its docked width is still limited by the available napari window;
-float the panel or enlarge the main window when more horizontal space is needed.
-The panel also remains aligned to the top when metadata hides dimensions that
-contain only one position; the metadata table expands into the available space.
 
 Python callers can still pass `use_lazy=False` to `CZIDataLoader` or
 `reader_function_adv` when they explicitly need the eager `read_6darray` path.
@@ -156,12 +196,12 @@ When a file is selected the plugin reads the bounding rectangle of every scene
 and computes the maximum pixel difference in width and height across all scenes.
 If any difference is detected, a label appears next to the load controls:
 
-```
-Scene size diff — W: 72px  H: 9px
-```
+    Scene size diff — W: 72px  H: 9px
 
 and the **Stack scenes** checkbox becomes enabled. Checking it re-evaluates the
 metadata with a tolerance equal to the computed maximum difference, which:
+
+![Scene Tolerance](https://github.com/sebi06/napari-czitools/raw/main/readme_images/scene_mismatch.png)
 
 1. **Unlocks the scene slider** so you can select any range of scenes.
 2. **Crops all scenes** to the smallest common W×H shape when pixel data is
@@ -175,7 +215,7 @@ multi-tile mosaic covering one well: the per-well tile grids are assembled from
 stage coordinates independently, so the total pixel extent of each well can
 differ by tens of pixels even when the acquisition settings are identical.
 
-##### Gigapixel CZIs (whole-slide, large 2D scans)
+#### Gigapixel CZIs (whole-slide, large 2D scans)
 
 For files whose individual 2D planes are larger than about 256 MB uncompressed
 (for example a `93,555 × 138,996` `uint16` plane ≈ 24 GB), `czitools`
@@ -202,29 +242,24 @@ embedded display settings). Without this, napari would auto-scan every chunk
 of the Dask array to determine the display range and materialize the entire
 plane in RAM before the first pixel is shown.
 
-##### Advanced Python usage
+#### Advanced Python usage
 
 The Python reader API forwards the same lazy behaviour:
 
-```python
-from napari_czitools._io import DEFAULT_MAX_COARSE_EDGE
-from napari_czitools._reader import reader_function_adv
+  from napari_czitools._io import DEFAULT_MAX_COARSE_EDGE
+  from napari_czitools._reader import reader_function_adv
 
-reader_function_adv(
+  reader_function_adv(
     "image.czi",
-    use_lazy=True,        # widget checkbox — read_stacks path
+    use_lazy=True,        # read pixel data only when requested
     use_dask=True,        # required for on-demand reads
     use_multiscale=True,  # napari renders coarse-level tiles first
     max_coarse_edge=DEFAULT_MAX_COARSE_EDGE,
-)
-```
+  )
 
-  `max_coarse_edge` is adjustable for programmatic use. Keep the default for
-  portable 3D rendering, lower it to reduce volume memory and VRAM use, or raise
-  it when the data will only be viewed in 2D and the GPU supports larger 2D
-  textures. The advanced reader widget exposes the same value as **3D preview
-  size** above **Load Pixel Data** and remembers it across napari sessions. The
-  setting becomes available after the selected file's metadata is loaded.
+`max_coarse_edge` is the Python equivalent of **3D preview size**. Keep the
+default for portable 3D rendering, lower it to reduce GPU memory use, or raise
+it when the GPU supports larger textures.
 
 With `use_lazy=True`, `czitools` reads the CZI metadata and builds Dask task
 graphs first — individual pixel planes are not loaded at that point. When
@@ -235,21 +270,20 @@ eagerly before wrapping the result in a Dask array.
 
 ## Current Limitations
 
-The plugin is still in its early stages; expect bugs and breaking changes.
-
-- opening the sample CZI files will not display the CZI metadata right now
+The sample-data commands add image layers directly and do not open the
+Advanced CZI Reader metadata panel.
 
 ### Future plans
 
-- upgrade [pylibCZIrw] to allow use [bioio-czi] for even better reading
-- export of metadata table
+- Evaluate interoperability with [bioio-czi].
+- Add metadata-table export.
 
 Feedback is always welcome!
 
 ## Contributing
 
-Contributions are very welcome. Tests can be run with [tox], please ensure
-the coverage at least stays the same before you submit a pull request.
+Contributions are welcome. Tests can be run with [tox]; please ensure coverage
+does not decrease when submitting a pull request.
 
 ### Running Tests
 
@@ -300,16 +334,17 @@ Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by ru
 
 ## License
 
-Distributed under the terms of the [MIT] license,
-"napari-czitools" is free and open source software
+Distributed under the terms of the [MIT] license, `napari-czitools` is free and
+open-source software.
 
 ## Issues
 
 If you encounter any problems, please [file an issue] along with a detailed description.
 
-# Disclaimer
+## Disclaimer
 
-The software & scripts are free to use for everybody. The author undertakes no warranty concerning the use of this plugins and scripts. Use them on your own risk.
+The software and scripts are free to use. The author provides no warranty for
+their use. Use them at your own risk.
 
 By using this plugin you agree to this disclaimer.
 
@@ -321,7 +356,5 @@ By using this plugin you agree to this disclaimer.
 [tox]: https://tox.readthedocs.io/en/latest/
 [pip]: https://pypi.org/project/pip/
 [czitools]: https://pypi.org/project/czitools/
-[pylibCZIrw]: https://pypi.org/project/pylibCZIrw/
-[MaxOS wheels for pylibCZIrw]: https://pypi.scm.io/#/package/pylibczirw
 [bioio-czi]: https://pypi.org/project/bioio-czi/
 [superqt]: https://pyapp-kit.github.io/superqt/
