@@ -1,7 +1,9 @@
 # extract_metadata.py
-import sys
+import argparse
 import json
-import os
+import sys
+from pathlib import Path
+
 from czitools.metadata_tools import czi_metadata as czimd
 
 
@@ -15,15 +17,10 @@ def get_meta(path):
             "clims": md.channelinfo.clims,
             "maxvalue": md.image.SizeX,
             "maxvalue_list": md.maxvalue_list,
-            "red_dict": czimd.create_md_dict_red(
-                md, sort=True, remove_none=True
-            ),
-            "nested_dict": czimd.create_md_dict_nested(
-                md, sort=True, remove_none=True
-            ),
+            "red_dict": czimd.create_md_dict_red(md, sort=True, remove_none=True),
+            "nested_dict": czimd.create_md_dict_nested(md, sort=True, remove_none=True),
         }
 
-        # ADD 'default=str' HERE to handle Enums like TintingMode
         print(json.dumps(data, default=str))
 
     except Exception as e:
@@ -32,10 +29,13 @@ def get_meta(path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        get_meta(sys.argv[1])
-    else:
-        # For your manual testing
-        get_meta(
-            r"/datadisk1/Github/napari-czitools/src/napari_czitools/sample_data/CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"
-        )
+    default_sample = Path(__file__).resolve().parent / "sample_data" / "CellDivision_T10_Z20_CH2_X600_Y500_DCV_ZSTD.czi"
+    parser = argparse.ArgumentParser(description="Print CZI metadata as JSON.")
+    parser.add_argument(
+        "path",
+        nargs="?",
+        type=Path,
+        default=default_sample,
+        help="CZI file to inspect (defaults to a bundled sample).",
+    )
+    get_meta(parser.parse_args().path)

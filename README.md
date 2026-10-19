@@ -246,16 +246,18 @@ plane in RAM before the first pixel is shown.
 
 The Python reader API forwards the same lazy behaviour:
 
-  from napari_czitools._io import DEFAULT_MAX_COARSE_EDGE
-  from napari_czitools._reader import reader_function_adv
+```python
+from napari_czitools._io import DEFAULT_MAX_COARSE_EDGE
+from napari_czitools._reader import reader_function_adv
 
-  reader_function_adv(
+reader_function_adv(
     "image.czi",
     use_lazy=True,        # read pixel data only when requested
     use_dask=True,        # required for on-demand reads
     use_multiscale=True,  # napari renders coarse-level tiles first
     max_coarse_edge=DEFAULT_MAX_COARSE_EDGE,
-  )
+)
+```
 
 `max_coarse_edge` is the Python equivalent of **3D preview size**. Keep the
 default for portable 3D rendering, lower it to reduce GPU memory use, or raise
