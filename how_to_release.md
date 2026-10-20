@@ -6,7 +6,7 @@ job publishes the package through PyPI Trusted Publishing.
 
 ## Before tagging
 
-1. Choose the next unused semantic version. The current release is `0.12.4`; do not reuse an existing version or tag.
+1. Check the latest published version and existing Git tags, then choose the next unused semantic version. Do not reuse an existing version or tag.
 2. Move the release notes from the `Unreleased` section in `CHANGELOG.md` into a heading for the new version and commit the release changes to `main`.
 3. Confirm `main` is up to date and its CI checks pass. The release workflow runs tox on Python 3.12 and 3.13 across Linux, Windows, and macOS.
 
@@ -24,6 +24,8 @@ they pass, the workflow builds the distribution and publishes it to
 [PyPI](https://pypi.org/project/napari-czitools/). Verify the published version
 and release files there.
 
-For a TestPyPI check, use the separate `test_and_deploy_testpypi` workflow and
-its `testpypi-vX.Y.Z` tag convention. Do not use a TestPyPI tag for a production
+For a CI-only pre-release test, use the separate `test_and_deploy_testpypi`
+workflow and its `testpypi-vX.Y.Z` tag convention. The workflow currently runs
+tests but does not build or publish a package to TestPyPI, so it cannot be used
+to verify a TestPyPI artifact. Do not use a TestPyPI tag for a production
 release.
