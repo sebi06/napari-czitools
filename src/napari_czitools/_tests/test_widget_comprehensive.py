@@ -102,6 +102,21 @@ def widget_with_two_sliders(qapp, mock_viewer):
 class TestMetadataDisplayModeChanges:
     """Test metadata display mode switching functionality."""
 
+    @pytest.mark.parametrize("display_mode", ["Table", "Tree"])
+    def test_metadata_panel_stays_compact(
+        self, widget_with_double_sliders, qtbot, display_mode
+    ):
+        """Keep either metadata view compact so loading controls fit below it."""
+        widget = widget_with_double_sliders
+        qtbot.addWidget(widget)
+        widget.mdata_widget.value = display_mode
+        widget.resize(420, 800)
+        widget.show()
+        QApplication.processEvents()
+        assert widget.current_md_widget.minimumHeight() == 120
+        assert widget.current_md_widget.maximumHeight() == 200
+        assert 120 <= widget.current_md_widget.height() <= 200
+
     def test_mdwidget_changed_table_to_tree(self, widget_with_double_sliders):
         """
         Test switching from table to tree metadata display mode.

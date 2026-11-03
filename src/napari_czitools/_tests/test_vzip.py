@@ -108,6 +108,42 @@ def test_archive_metadata_and_lazy_selections(archive, monkeypatch):
     np.testing.assert_array_equal(levels[0].compute(), (data + 1)[1:2, 0, 1:3])
 
 
+def test_rectilinear_archive_lazy_selections(archive, monkeypatch):
+    """Preserve irregular chunk boundaries and defer reads for every pyramid level."""
+    import zarr
+
+    if not hasattr(zarr.Array, "read_chunk_sizes"):
+        pytest.skip("This Zarr version does not support rectilinear grids")
+    path, _, root, data = archive
+    chunks = ((1, 1), (1, 2), (1, 3), (3, 5), (4, 6))
+    with zarr.config.set({"array.rectilinear_chunks": True}):
+        del root["0"]["0"]
+        root["0"].create_array("0", data=data, chunks=chunks)
+        with pytest.raises(NotImplementedError, match="rectilinear"):
+            _ = root["0"]["0"].chunks
+        reads = []
+        getitem = zarr.Array.__getitem__
+
+        def record_read(array, selection):
+            reads.append(selection)
+            return getitem(array, selection)
+
+        monkeypatch.setattr(zarr.Array, "__getitem__", record_read)
+        layers = vzip_layers(
+            open_vzip(path),
+            {"S": (0, 0), "T": (1, 1), "C": (1, 1), "Z": (1, 2)},
+        )
+        assert not reads
+        levels, kwargs, _ = layers[0]
+        assert kwargs["multiscale"] is True
+        assert levels[0].chunks[-2:] == ((3, 5), (4, 6))
+        np.testing.assert_array_equal(levels[0].compute(), data[1:2, 1, 1:3])
+        np.testing.assert_array_equal(
+            levels[1].compute(), data[1:2, 1, 1:3, ::2, ::2]
+        )
+        assert reads
+
+
 def test_no_selection_reads_all_scene_channel_layers(archive):
     """Direct opening returns independent scene layers rather than stacking."""
     layers = read_vzip([str(archive[0])])

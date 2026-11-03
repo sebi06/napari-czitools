@@ -13,6 +13,23 @@ import numpy as np
 INSTALL_HINT = 'Install VZIP support with: pip install "napari-czitools[vzip]"'
 
 
+class _DaskZarrArray:
+    """Expose generalized Zarr chunk sizes through Dask's array protocol."""
+
+    def __init__(self, array: Any) -> None:
+        self._array = array
+        self.shape = array.shape
+        self.dtype = array.dtype
+        self.ndim = array.ndim
+        self.chunks = getattr(array, "read_chunk_sizes", None)
+        if self.chunks is None:
+            self.chunks = array.chunks
+
+    def __getitem__(self, selection: Any) -> np.ndarray:
+        """Read only the slice requested by a Dask task."""
+        return self._array[selection]
+
+
 def vzip_available() -> bool:
     """Check availability without importing optional refkv modules."""
     return find_spec("refkv") is not None
@@ -218,10 +235,13 @@ def vzip_layers(
                         )
                     else:
                         selection.append(slice(None))
+                chunked_array = _DaskZarrArray(array)
                 levels.append(
-                    da.from_zarr(array)[tuple(selection)].transpose(
-                        permutation
-                    )
+                    da.from_array(
+                        chunked_array,
+                        chunks=chunked_array.chunks,
+                        meta=np.empty((0,) * array.ndim, dtype=array.dtype),
+                    )[tuple(selection)].transpose(permutation)
                 )
             channel = (
                 channels[channel_index]
