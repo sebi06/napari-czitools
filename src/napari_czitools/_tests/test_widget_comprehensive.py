@@ -29,7 +29,10 @@ from napari_czitools._range_widget import RangeSliderWidget
 from napari_czitools._widget import CziReaderWidget, SliderType
 
 # Check if we're running in a headless environment (like GitHub Actions)
-HEADLESS = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
+HEADLESS = (
+    os.environ.get("CI") == "true"
+    or os.environ.get("GITHUB_ACTIONS") == "true"
+)
 
 # Skip GUI tests in headless environments unless xvfb is available
 pytestmark = pytest.mark.skipif(
@@ -121,7 +124,7 @@ class TestMetadataDisplayModeChanges:
         # Verify tree is now current
         assert widget.current_md_widget == widget.mdtree
         assert widget.type_column_checkbox.isVisibleTo(widget)
-        assert widget.main_layout.indexOf(widget.mdtree) == 3
+        assert widget.main_layout.indexOf(widget.mdtree) == 4
 
     def test_mdwidget_changed_tree_to_table(self, widget_with_double_sliders):
         """
@@ -152,7 +155,9 @@ class TestMetadataDisplayModeChanges:
 class TestMetadataResetFunctionality:
     """Test metadata widget reset functionality."""
 
-    def test_reset_metadata_widgets_clears_data(self, widget_with_double_sliders):
+    def test_reset_metadata_widgets_clears_data(
+        self, widget_with_double_sliders
+    ):
         """
         Test that reset_metadata_widgets properly clears both tree and table widgets.
 
@@ -179,7 +184,9 @@ class TestMetadataResetFunctionality:
 class TestRangeSliderResetFunctionality:
     """Test range slider reset functionality for both slider types."""
 
-    def test_reset_range_sliders_double_slider_type(self, widget_with_double_sliders):
+    def test_reset_range_sliders_double_slider_type(
+        self, widget_with_double_sliders
+    ):
         """
         Test range slider reset for DoubleRangeSlider type.
 
@@ -224,7 +231,9 @@ class TestRangeSliderResetFunctionality:
             slider.setHigh.assert_called_once_with(0)
             slider.setVisible.assert_called_once_with(True)
 
-    def test_reset_range_sliders_two_slider_type(self, widget_with_two_sliders):
+    def test_reset_range_sliders_two_slider_type(
+        self, widget_with_two_sliders
+    ):
         """
         Test range slider reset for TwoSliders type.
 
@@ -298,7 +307,9 @@ class TestTypeColumnVisibility:
 
         # Verify the tree widget was updated correctly
         assert widget.show_type_column is True
-        widget.mdtree.set_type_column_visibility.assert_called_once_with(visible=True, column_id=2)
+        widget.mdtree.set_type_column_visibility.assert_called_once_with(
+            visible=True, column_id=2
+        )
 
     def test_type_column_changed_hide_column(self, widget_with_double_sliders):
         """
@@ -329,14 +340,18 @@ class TestTypeColumnVisibility:
 
         # Verify the tree widget was updated correctly
         assert widget.show_type_column is False
-        widget.mdtree.set_type_column_visibility.assert_called_once_with(visible=False, column_id=2)
+        widget.mdtree.set_type_column_visibility.assert_called_once_with(
+            visible=False, column_id=2
+        )
 
 
 class TestPixelDataLoading:
     """Test pixel data loading button functionality."""
 
     @patch("napari_czitools._widget.reader_function_adv")
-    def test_loadbutton_pressed_double_slider_type(self, mock_reader, widget_with_double_sliders):
+    def test_loadbutton_pressed_double_slider_type(
+        self, mock_reader, widget_with_double_sliders
+    ):
         """
         Test pixel data loading with DoubleRangeSlider type.
 
@@ -391,7 +406,9 @@ class TestPixelDataLoading:
         assert call_args[1]["planes"] == expected_planes
 
     @patch("napari_czitools._widget.reader_function_adv")
-    def test_loadbutton_pressed_two_slider_type(self, mock_reader, widget_with_two_sliders):
+    def test_loadbutton_pressed_two_slider_type(
+        self, mock_reader, widget_with_two_sliders
+    ):
         """
         Test pixel data loading with TwoSliders type.
 
@@ -465,7 +482,9 @@ class TestPixelDataLoading:
         assert call_args[1]["planes"] == expected_planes
 
     @patch("napari_czitools._widget.reader_function_adv")
-    def test_widget_always_uses_lazy_loading(self, mock_reader, widget_with_double_sliders):
+    def test_widget_always_uses_lazy_loading(
+        self, mock_reader, widget_with_double_sliders
+    ):
         """Verify the widget always requests lazy multiscale loading."""
         widget = widget_with_double_sliders
 
@@ -489,7 +508,9 @@ class TestPixelDataLoading:
 class TestSliderTypeChanges:
     """Test dynamic slider type changing functionality."""
 
-    def test_slider_type_changed_to_double_range(self, widget_with_two_sliders):
+    def test_slider_type_changed_to_double_range(
+        self, widget_with_two_sliders
+    ):
         """
         Test changing slider type from TwoSliders to DoubleRangeSlider.
 
@@ -523,7 +544,9 @@ class TestSliderTypeChanges:
         widget._create_sliders.assert_called_once()
         widget._update_sliders_from_metadata.assert_called_once()
 
-    def test_slider_type_changed_to_two_sliders(self, widget_with_double_sliders):
+    def test_slider_type_changed_to_two_sliders(
+        self, widget_with_double_sliders
+    ):
         """
         Test changing slider type from DoubleRangeSlider to TwoSliders.
 
@@ -557,7 +580,9 @@ class TestSliderTypeChanges:
         widget._create_sliders.assert_called_once()
         widget._update_sliders_from_metadata.assert_called_once()
 
-    def test_slider_type_changed_same_type_no_change(self, widget_with_double_sliders):
+    def test_slider_type_changed_same_type_no_change(
+        self, widget_with_double_sliders
+    ):
         """
         Test that changing to the same slider type does nothing.
 
@@ -582,7 +607,9 @@ class TestSliderTypeChanges:
         widget._create_sliders.assert_not_called()
         widget._update_sliders_from_metadata.assert_not_called()
 
-    def test_slider_type_changed_invalid_value(self, widget_with_double_sliders):
+    def test_slider_type_changed_invalid_value(
+        self, widget_with_double_sliders
+    ):
         """
         Test that invalid slider type values are ignored.
 
@@ -611,7 +638,9 @@ class TestSliderTypeChanges:
 class TestSliderRemovalAndCreation:
     """Test slider removal and creation functionality."""
 
-    def test_remove_existing_sliders_double_range_type(self, widget_with_double_sliders):
+    def test_remove_existing_sliders_double_range_type(
+        self, widget_with_double_sliders
+    ):
         """
         Test removal of existing DoubleRangeSlider type sliders.
 
@@ -647,7 +676,9 @@ class TestSliderRemovalAndCreation:
         assert not hasattr(widget, "channel_slider")
         assert not hasattr(widget, "z_slider")
 
-    def test_remove_existing_sliders_two_slider_type(self, widget_with_two_sliders):
+    def test_remove_existing_sliders_two_slider_type(
+        self, widget_with_two_sliders
+    ):
         """
         Test removal of existing TwoSliders type sliders.
 
@@ -684,7 +715,9 @@ class TestSliderRemovalAndCreation:
         assert not hasattr(widget, "z_slider")
 
     @patch("napari_czitools._widget.LabeledDoubleRangeSliderWidget")
-    def test_create_sliders_double_range_type(self, mock_double_slider, widget_with_double_sliders):
+    def test_create_sliders_double_range_type(
+        self, mock_double_slider, widget_with_double_sliders
+    ):
         """
         Test creation of DoubleRangeSlider type sliders.
 
@@ -721,7 +754,9 @@ class TestSliderRemovalAndCreation:
         assert hasattr(widget, "z_slider")
 
     @patch("napari_czitools._widget.RangeSliderWidget")
-    def test_create_sliders_two_slider_type(self, mock_range_slider, widget_with_two_sliders):
+    def test_create_sliders_two_slider_type(
+        self, mock_range_slider, widget_with_two_sliders
+    ):
         """
         Test creation of TwoSliders type sliders.
 
@@ -762,7 +797,9 @@ class TestSliderRemovalAndCreation:
 class TestMetadataSliderUpdates:
     """Test slider updates based on metadata."""
 
-    def test_update_sliders_from_metadata_no_metadata(self, widget_with_double_sliders):
+    def test_update_sliders_from_metadata_no_metadata(
+        self, widget_with_double_sliders
+    ):
         """
         Test slider update when no metadata is available.
 
@@ -801,7 +838,9 @@ class TestMetadataSliderUpdates:
             slider = getattr(widget, slider_name)
             slider.setEnabled.assert_not_called()
 
-    def test_update_sliders_from_metadata_double_range_with_data(self, widget_with_double_sliders):
+    def test_update_sliders_from_metadata_double_range_with_data(
+        self, widget_with_double_sliders
+    ):
         """
         Test slider update with metadata for DoubleRangeSlider type.
 
@@ -865,7 +904,9 @@ class TestMetadataSliderUpdates:
         widget.z_slider.setEnabled.assert_called_with(False)
         widget.z_slider.setVisible.assert_called_with(False)
 
-    def test_update_sliders_from_metadata_two_sliders_with_data(self, widget_with_two_sliders):
+    def test_update_sliders_from_metadata_two_sliders_with_data(
+        self, widget_with_two_sliders
+    ):
         """
         Test slider update with metadata for TwoSliders type.
 

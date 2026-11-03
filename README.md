@@ -194,16 +194,21 @@ because the existing coarsest level already fits.
 Choose **Load using: VZIP** in the existing reader widget. The default remains
 **CZI**, which continues to use the normal lazy multiscale reader.
 
-For a selected CZI, the archive destination defaults to a sibling `image.vzip`.
-The **Archive** field allows a different destination; its parent directory must
-already exist. **Load Pixel Data** creates the archive in a background worker,
+Use the single **Open CZI or VZIP** selector at the top, then choose the loading
+mode directly below it. For a selected CZI, the archive destination defaults to
+a sibling `image.vzip`. **Save archive as...**, beside **Load Pixel Data**, allows
+a different destination; its parent directory must already exist. The selected
+archive filename is shown above the loading buttons; hover over it for the full
+destination path. Choosing a destination does not create the archive yet.
+**Load Pixel Data** creates the archive in a background worker,
 then adds lazy image layers. If the archive exists, choose **Reuse**, **Rebuild**,
 or **Cancel**. Reuse never rewrites it and checks that it references the selected
 CZI. Rebuild explicitly replaces it through the protected czitools exporter.
 
 The archive references the **whole CZI**. Scene/Time/Channel/Z selections apply
 only to the displayed layers, so changing selections does not require rebuilding.
-Selecting an existing `.vzip` automatically switches the widget to VZIP mode.
+Selecting an existing `.vzip` in that same selector automatically switches the
+widget to VZIP mode and hides archive-creation and destination controls.
 Its metadata table/tree and sliders are populated from the archive without
 parsing the CZI again. For scenes with different T/C/Z lengths, the widget exposes
 the ranges common to all scenes; scenes remain separate layers, not a stack.

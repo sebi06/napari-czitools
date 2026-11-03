@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Unified CZI/VZIP opening into one file selector with loading mode directly
+	beneath it. Replaced the second archive selector with an optional
+	**Save archive as...** destination action beside the load button; creation
+	controls are hidden when opening an existing archive.
+
 ### Added
 
 - Optional `napari-czitools[vzip]` support for CZI-derived reference archives.

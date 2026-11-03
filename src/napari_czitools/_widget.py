@@ -22,12 +22,15 @@ from qtpy.QtCore import QEvent, QSettings
 from qtpy.QtWidgets import (
     QCheckBox,
     QDockWidget,
+    QFileDialog,
     QHBoxLayout,
     QLabel,
     QMessageBox,
     QProgressBar,
+    QPushButton,
     QSizePolicy,
     QSpinBox,
+    QStyle,
     QVBoxLayout,
     QWidget,
 )
@@ -82,6 +85,7 @@ class CziReaderWidget(QWidget):
         self._vzip_archive = None
         self._vzip_worker = None
         self._archive_source_path = None
+        self._vzip_destination = None
         self._valid_input = False
         self._vzip_closed = False
 
@@ -90,7 +94,7 @@ class CziReaderWidget(QWidget):
 
         # 1. FileDialog Section
         file_layout = QHBoxLayout()
-        file_label = QLabel("Select Image:")
+        file_label = QLabel("Open CZI or VZIP:")
         file_layout.addWidget(file_label)
 
         # define filter based on file extension
@@ -106,6 +110,13 @@ class CziReaderWidget(QWidget):
         ):
             drop_target.setAcceptDrops(True)
             drop_target.installEventFilter(self)
+
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel("Load using:"))
+        self.loading_mode = ComboBox(value="CZI", choices=["CZI", "VZIP"])
+        self.loading_mode.changed.connect(self._loading_mode_changed)
+        mode_layout.addWidget(self.loading_mode.native)
+        mode_layout.addStretch()
 
         # 2. ComboBox and Type Column Checkbox Section
         mdcombo_layout = QHBoxLayout()
@@ -166,6 +177,7 @@ class CziReaderWidget(QWidget):
 
         # Add all widgets to the main layout
         self.main_layout.addLayout(file_layout)  # Add FileDialog section
+        self.main_layout.addLayout(mode_layout)
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
         self.main_layout.addLayout(slider_layout)  # Add Slider Type section
 
@@ -196,25 +208,22 @@ class CziReaderWidget(QWidget):
 
         self._settings = QSettings("napari-czitools", "napari-czitools")
 
-        mode_layout = QHBoxLayout()
-        mode_layout.addWidget(QLabel("Load using:"))
-        self.loading_mode = ComboBox(value="CZI", choices=["CZI", "VZIP"])
-        self.loading_mode.changed.connect(self._loading_mode_changed)
-        mode_layout.addWidget(self.loading_mode.native)
-        mode_layout.addStretch()
-        self.main_layout.addLayout(mode_layout)
-
         self.vzip_controls = QWidget()
         archive_layout = QHBoxLayout(self.vzip_controls)
         archive_layout.setContentsMargins(0, 0, 0, 0)
-        archive_layout.addWidget(QLabel("Archive:"))
-        self.vzip_path = FileEdit(
-            mode=FileDialogMode.OPTIONAL_FILE,
-            value="",
-            filter="*.vzip",
+        self.save_archive_as = QPushButton("Save archive as...")
+        self.save_archive_as.setIcon(
+            self.style().standardIcon(
+                QStyle.StandardPixmap.SP_DialogSaveButton
+            )
         )
-        archive_layout.addWidget(self.vzip_path.native)
-        self.main_layout.addWidget(self.vzip_controls)
+        self.save_archive_as.setToolTip(
+            "Choose a different destination for the reference archive"
+        )
+        self.save_archive_as.clicked.connect(self._choose_vzip_destination)
+        archive_layout.addWidget(self.save_archive_as)
+        self.vzip_destination_label = QLabel("")
+        self.vzip_destination_label.setWordWrap(True)
         self.vzip_warning = QLabel(
             "VZIP references the original CZI. Keep it unchanged at its original location."
         )
@@ -259,8 +268,10 @@ class CziReaderWidget(QWidget):
         self.main_layout.addLayout(preview_layout)
 
         # Pixel data is always loaded lazily from the widget.
+        self.main_layout.addWidget(self.vzip_destination_label)
         load_layout = QHBoxLayout()
         load_layout.addWidget(self.load_pixeldata.native)
+        load_layout.addWidget(self.vzip_controls)
         self.main_layout.addLayout(load_layout)
         self._set_load_controls_enabled(False)
 
@@ -374,8 +385,8 @@ class CziReaderWidget(QWidget):
 
         # Disable loading controls until new metadata is loaded
         self.vzip_status.setText("")
-        self._set_load_controls_enabled(False)
         self._valid_input = False
+        self._set_load_controls_enabled(False)
         self._vzip_archive = None
         self.metadata = None
 
@@ -387,7 +398,7 @@ class CziReaderWidget(QWidget):
         if path.suffix.lower() not in (".czi", ".vzip"):
             return
         if path != self._archive_source_path:
-            self.vzip_path.value = path.with_suffix(".vzip")
+            self._vzip_destination = path.with_suffix(".vzip")
             self._archive_source_path = path
         if path.suffix.lower() == ".vzip":
             with self.loading_mode.changed.blocked():
@@ -548,16 +559,47 @@ class CziReaderWidget(QWidget):
     def _sync_vzip_controls(self) -> None:
         """Show archive controls only for VZIP and protect incompatible options."""
         use_vzip = self.loading_mode.value == "VZIP"
-        self.vzip_controls.setVisible(use_vzip)
+        create_archive = (
+            use_vzip
+            and Path(self.filename_edit.value).suffix.lower() == ".czi"
+        )
+        self.vzip_controls.setVisible(create_archive)
+        self.vzip_destination_label.setVisible(create_archive)
+        self.save_archive_as.setEnabled(self._valid_input and vzip_available())
+        if self._vzip_destination is not None:
+            self.vzip_destination_label.setText(
+                f"Archive: {self._vzip_destination.name}"
+            )
+            self.vzip_destination_label.setToolTip(
+                str(self._vzip_destination.absolute())
+            )
         self.vzip_warning.setVisible(use_vzip)
         self.vzip_status.setVisible(use_vzip)
-        self.vzip_path.enabled = (
-            Path(self.filename_edit.value).suffix.lower() != ".vzip"
-        )
         if use_vzip:
             self.stack_scenes_checkbox.setChecked(False)
             self.stack_scenes_checkbox.setEnabled(False)
             self.scene_diff_label.setVisible(False)
+
+    def _choose_vzip_destination(self) -> None:
+        """Override the default sibling archive without changing the open input."""
+        if (
+            self.loading_mode.value != "VZIP"
+            or Path(self.filename_edit.value).suffix.lower() != ".czi"
+        ):
+            return
+        destination, _ = QFileDialog.getSaveFileName(
+            self,
+            "Save archive as",
+            str(self._vzip_destination),
+            "VZIP archives (*.vzip)",
+            options=QFileDialog.Option.DontConfirmOverwrite,
+        )
+        if destination:
+            path = Path(destination)
+            self._vzip_destination = (
+                path if path.suffix else path.with_suffix(".vzip")
+            )
+            self._sync_vzip_controls()
 
     def _loading_mode_changed(self) -> None:
         """Refresh selections and metadata when switching loading backends."""
@@ -642,7 +684,7 @@ class CziReaderWidget(QWidget):
         destination = (
             source
             if source.suffix.lower() == ".vzip"
-            else Path(self.vzip_path.value)
+            else self._vzip_destination or source.with_suffix(".vzip")
         )
         if destination.suffix.lower() != ".vzip" or destination.is_dir():
             self._vzip_failed(
@@ -801,6 +843,7 @@ class CziReaderWidget(QWidget):
     def _mdwidget_changed(self):
         """Callback for when the metadata display combo box changes."""
         # Remove the current widget
+        metadata_index = self.main_layout.indexOf(self.current_md_widget)
         self.main_layout.removeWidget(self.current_md_widget)
         self.current_md_widget.hide()
 
@@ -814,8 +857,8 @@ class CziReaderWidget(QWidget):
             # Hide the type column checkbox when table is selected
             self.type_column_checkbox.hide()
 
-        # Keep metadata below the file, display, and slider-type rows.
-        self.main_layout.insertWidget(3, self.current_md_widget)
+        # Keep metadata below the file, mode, display, and slider-type rows.
+        self.main_layout.insertWidget(metadata_index, self.current_md_widget)
         self.current_md_widget.show()
 
     def _reset_metadata_widgets(self):

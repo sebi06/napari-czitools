@@ -259,7 +259,8 @@ def test_vzip_mode_missing_dependency_guidance(qapp, monkeypatch):
     assert widget.loading_mode.value == "CZI"
     assert widget.vzip_controls.isHidden()
     widget.loading_mode.value = "VZIP"
-    assert not widget.vzip_controls.isHidden()
+    assert widget.vzip_controls.isHidden()
+    assert not widget.vzip_warning.isHidden()
     assert not widget.load_pixeldata.enabled
     assert widget.vzip_status.text() == INSTALL_HINT
     assert not widget.max_coarse_edge_spinbox.isEnabled()
@@ -278,7 +279,8 @@ def test_archive_selection_populates_widget(archive, qapp, slider_type):
     assert widget.metadata is None
     assert widget._vzip_archive.source == archive[1]
     assert widget.load_pixeldata.enabled
-    assert not widget.vzip_path.enabled
+    assert widget.vzip_controls.isHidden()
+    assert widget.vzip_destination_label.isHidden()
     if slider_type == "DoubleRangeSlider":
         assert widget.scene_slider.high() == 1
         assert widget.channel_slider.high() == 2
@@ -287,6 +289,96 @@ def test_archive_selection_populates_widget(archive, qapp, slider_type):
         assert widget.scene_slider.max_slider.value == 1
         assert widget.channel_slider.max_slider.value == 2
         assert widget.z_slider.max_slider.value == 3
+
+
+def test_unified_file_controls_and_layout(qapp):
+    """Use one source selector and preserve the mode row when metadata changes."""
+    from magicgui.widgets import FileEdit
+
+    from napari_czitools._widget import CziReaderWidget
+
+    widget = CziReaderWidget(object())
+    selectors = [
+        value for value in vars(widget).values() if isinstance(value, FileEdit)
+    ]
+    assert selectors == [widget.filename_edit]
+    assert (
+        widget.main_layout.itemAt(0)
+        .layout()
+        .indexOf(widget.filename_edit.native)
+        >= 0
+    )
+    assert (
+        widget.main_layout.itemAt(1)
+        .layout()
+        .indexOf(widget.loading_mode.native)
+        >= 0
+    )
+    for mode in ("Tree", "Table", "Tree"):
+        widget.mdata_widget.value = mode
+        assert widget.main_layout.indexOf(widget.current_md_widget) == 4
+        assert (
+            widget.main_layout.itemAt(1)
+            .layout()
+            .indexOf(widget.loading_mode.native)
+            >= 0
+        )
+
+
+@pytest.mark.parametrize("chosen", ["", "custom", "custom.vzip"])
+def test_save_archive_destination_override(archive, qapp, mocker, chosen):
+    """Changing the save destination never replaces the selected CZI input."""
+    from qtpy.QtWidgets import QFileDialog
+
+    from napari_czitools._widget import CziReaderWidget
+
+    widget = CziReaderWidget(object())
+    widget.filename_edit.value = archive[0]
+    with widget.filename_edit.line_edit.changed.blocked():
+        widget.filename_edit.value = archive[1]
+    widget._vzip_destination = archive[0]
+    widget._archive_source_path = archive[1]
+    widget._sync_vzip_controls()
+    selected = str(archive[0].parent / chosen) if chosen else ""
+    dialog = mocker.patch(
+        "napari_czitools._widget.QFileDialog.getSaveFileName",
+        return_value=(selected, "VZIP archives (*.vzip)"),
+    )
+    assert not widget.vzip_controls.isHidden()
+    widget.save_archive_as.click()
+    assert Path(widget.filename_edit.value) == archive[1]
+    expected = Path(selected).with_suffix(".vzip") if chosen else archive[0]
+    assert widget._vzip_destination == expected
+    assert widget.vzip_destination_label.text() == f"Archive: {expected.name}"
+    assert widget.vzip_destination_label.toolTip() == str(expected.absolute())
+    assert (
+        dialog.call_args.kwargs["options"]
+        == QFileDialog.Option.DontConfirmOverwrite
+    )
+    mocker.patch(
+        "napari_czitools._widget.CziMetadata",
+        side_effect=ValueError("Synthetic CZI has no pixel header"),
+    )
+    widget.loading_mode.value = "CZI"
+    assert widget.vzip_controls.isHidden()
+    widget.loading_mode.value = "VZIP"
+    assert widget._vzip_destination == expected
+
+
+def test_existing_archive_hides_destination_action(archive, qapp, mocker):
+    """Opening an archive offers no creation destination or save dialog."""
+    from napari_czitools._widget import CziReaderWidget
+
+    widget = CziReaderWidget(object())
+    widget.filename_edit.value = archive[0]
+    dialog = mocker.patch(
+        "napari_czitools._widget.QFileDialog.getSaveFileName"
+    )
+    widget._choose_vzip_destination()
+    dialog.assert_not_called()
+    assert widget.vzip_controls.isHidden()
+    assert widget.vzip_destination_label.isHidden()
+    assert not widget.vzip_warning.isHidden()
 
 
 def test_archive_worker_adds_layers_on_main_thread(
@@ -374,7 +466,7 @@ def test_invalid_destination_does_not_start_worker(archive, qapp, mocker):
     widget.filename_edit.value = archive[0]
     with widget.filename_edit.line_edit.changed.blocked():
         widget.filename_edit.value = archive[1]
-    widget.vzip_path.value = archive[0].parent
+    widget._vzip_destination = archive[0].parent
     notify = mocker.patch("napari.utils.notifications.show_error")
     prompt = mocker.patch.object(widget, "_existing_vzip_choice")
     worker = mocker.patch("napari.qt.threading.create_worker")
@@ -397,8 +489,9 @@ def test_closed_widget_discards_results(archive, qapp):
     assert widget._vzip_closed
 
 
+@pytest.mark.parametrize("select_source_first", [False, True])
 def test_widget_creates_and_reopens_real_archive(
-    tmp_path, qtbot, make_napari_viewer, mocker
+    tmp_path, qtbot, make_napari_viewer, mocker, select_source_first
 ):
     """Export the full source off-thread, display a subset, then reuse the archive."""
     pytest.importorskip("refkv.zarr")
@@ -419,17 +512,23 @@ def test_widget_creates_and_reopens_real_archive(
     viewer = make_napari_viewer()
     widget = CziReaderWidget(viewer)
     qtbot.addWidget(widget)
-    widget.loading_mode.value = "VZIP"
-    widget.filename_edit.value = source
+    archive_path = source.with_suffix(".vzip")
+    if select_source_first:
+        widget.filename_edit.value = source
+        assert widget.loading_mode.value == "CZI"
+        widget.loading_mode.value = "VZIP"
+    else:
+        widget.loading_mode.value = "VZIP"
+        widget.filename_edit.value = source
+    assert not archive_path.exists()
     assert widget.load_pixeldata.enabled
-    assert Path(widget.vzip_path.value) == source.with_suffix(".vzip")
+    assert widget._vzip_destination == archive_path
     widget.time_slider.setLow(1)
     widget.time_slider.setHigh(1)
     widget.z_slider.setLow(2)
     widget.z_slider.setHigh(3)
     widget._loadbutton_pressed()
     qtbot.waitUntil(lambda: widget._vzip_worker is None, timeout=30000)
-    archive_path = source.with_suffix(".vzip")
     assert archive_path.is_file()
     assert len(viewer.layers) == 1
     assert viewer.layers[0].data.shape == (1, 2, 200, 300)
