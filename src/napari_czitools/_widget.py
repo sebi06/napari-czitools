@@ -8,9 +8,10 @@ Replace code below according to your needs.
 
 import contextlib
 import os
+import typing
 from enum import Enum
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from czitools.metadata_tools import czi_metadata as czimd
 from czitools.metadata_tools.czi_metadata import CziMetadata
@@ -23,6 +24,8 @@ from qtpy.QtWidgets import (
     QDockWidget,
     QHBoxLayout,
     QLabel,
+    QMessageBox,
+    QProgressBar,
     QSizePolicy,
     QSpinBox,
     QVBoxLayout,
@@ -35,6 +38,13 @@ from ._metadata_widget import MdTableWidget, MdTreeWidget, MetadataDisplayMode
 from ._range_widget import RangeSliderWidget
 from ._reader import reader_function_adv
 from ._utilities import _convert_numpy_types
+from ._vzip import (
+    INSTALL_HINT,
+    VzipArchive,
+    open_vzip,
+    prepare_vzip,
+    vzip_available,
+)
 
 logger = logging_tools.set_logging()
 
@@ -64,21 +74,30 @@ class CziReaderWidget(QWidget):
         self.show_type_column = show_type_column
 
         self.sliders = SliderType(sliders)
-        self.scenes_consistent = True  # Flag to track if scenes have consistent shapes
+        self.scenes_consistent = (
+            True  # Flag to track if scenes have consistent shapes
+        )
         # Computed from bounding rectangles on file select; used as stacking tolerance.
         self._scene_stack_tolerance = 0
+        self._vzip_archive = None
+        self._vzip_worker = None
+        self._archive_source_path = None
+        self._valid_input = False
+        self._vzip_closed = False
 
         # create a layout
         self.main_layout = QVBoxLayout()
 
         # 1. FileDialog Section
         file_layout = QHBoxLayout()
-        file_label = QLabel("Select CZI Image:")
+        file_label = QLabel("Select Image:")
         file_layout.addWidget(file_label)
 
         # define filter based on file extension
-        model_extension = "*.czi"
-        self.filename_edit = FileEdit(mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension)
+        model_extension = "Images (*.czi *.CZI *.vzip *.VZIP)"
+        self.filename_edit = FileEdit(
+            mode=FileDialogMode.EXISTING_FILE, value="", filter=model_extension
+        )
         file_layout.addWidget(self.filename_edit.native)
         self.filename_edit.line_edit.changed.connect(self._file_changed)
         for drop_target in (
@@ -104,7 +123,9 @@ class CziReaderWidget(QWidget):
         # Add checkbox for type column visibility
         self.type_column_checkbox = QCheckBox("Show Type Column")
         self.type_column_checkbox.setChecked(self.show_type_column)
-        self.type_column_checkbox.stateChanged.connect(self._type_column_changed)
+        self.type_column_checkbox.stateChanged.connect(
+            self._type_column_changed
+        )
         # Initially hide the checkbox since default display is Table
         self.type_column_checkbox.hide()
         mdcombo_layout.addWidget(self.type_column_checkbox)
@@ -148,7 +169,9 @@ class CziReaderWidget(QWidget):
         self.main_layout.addLayout(mdcombo_layout)  # Add ComboBox
         self.main_layout.addLayout(slider_layout)  # Add Slider Type section
 
-        self.main_layout.addWidget(self.mdtable)  # Add the native Qt widget of the table
+        self.main_layout.addWidget(
+            self.mdtable
+        )  # Add the native Qt widget of the table
 
         # Stack-scenes row — visible only when scene sizes differ after a file is loaded.
         stack_layout = QHBoxLayout()
@@ -159,7 +182,9 @@ class CziReaderWidget(QWidget):
             "Crop all scenes to the smallest common W\u00d7H and stack them into "
             "one array. Enabled automatically when scene sizes differ."
         )
-        self.stack_scenes_checkbox.stateChanged.connect(self._stack_scenes_changed)
+        self.stack_scenes_checkbox.stateChanged.connect(
+            self._stack_scenes_changed
+        )
         stack_layout.addWidget(self.stack_scenes_checkbox)
 
         # Shows the computed W/H size difference across scenes after a file is selected.
@@ -170,6 +195,39 @@ class CziReaderWidget(QWidget):
         self.main_layout.addLayout(stack_layout)
 
         self._settings = QSettings("napari-czitools", "napari-czitools")
+
+        mode_layout = QHBoxLayout()
+        mode_layout.addWidget(QLabel("Load using:"))
+        self.loading_mode = ComboBox(value="CZI", choices=["CZI", "VZIP"])
+        self.loading_mode.changed.connect(self._loading_mode_changed)
+        mode_layout.addWidget(self.loading_mode.native)
+        mode_layout.addStretch()
+        self.main_layout.addLayout(mode_layout)
+
+        self.vzip_controls = QWidget()
+        archive_layout = QHBoxLayout(self.vzip_controls)
+        archive_layout.setContentsMargins(0, 0, 0, 0)
+        archive_layout.addWidget(QLabel("Archive:"))
+        self.vzip_path = FileEdit(
+            mode=FileDialogMode.OPTIONAL_FILE,
+            value="",
+            filter="*.vzip",
+        )
+        archive_layout.addWidget(self.vzip_path.native)
+        self.main_layout.addWidget(self.vzip_controls)
+        self.vzip_warning = QLabel(
+            "VZIP references the original CZI. Keep it unchanged at its original location."
+        )
+        self.vzip_warning.setWordWrap(True)
+        self.main_layout.addWidget(self.vzip_warning)
+        self.vzip_status = QLabel("")
+        self.vzip_status.setWordWrap(True)
+        self.main_layout.addWidget(self.vzip_status)
+        self.vzip_progress = QProgressBar()
+        self.vzip_progress.setRange(0, 0)
+        self.vzip_progress.setTextVisible(False)
+        self.vzip_progress.hide()
+        self.main_layout.addWidget(self.vzip_progress)
 
         # 3D preview setting
         preview_layout = QHBoxLayout()
@@ -192,7 +250,9 @@ class CziReaderWidget(QWidget):
         )
         self.max_coarse_edge_spinbox.setValue(saved_coarse_edge)
         self.max_coarse_edge_spinbox.valueChanged.connect(
-            lambda value: self._settings.setValue("rendering/max_coarse_edge", value)
+            lambda value: self._settings.setValue(
+                "rendering/max_coarse_edge", value
+            )
         )
         preview_layout.addWidget(self.max_coarse_edge_spinbox)
         preview_layout.addStretch()
@@ -268,7 +328,7 @@ class CziReaderWidget(QWidget):
 
     @staticmethod
     def _czi_path_from_drop(event) -> Path | None:
-        """Return a valid CZI path from a Qt drag-and-drop event."""
+        """Return a valid CZI or VZIP path from a Qt drag-and-drop event."""
         mime_data = event.mimeData()
         if not mime_data.hasUrls():
             return None
@@ -278,12 +338,12 @@ class CziReaderWidget(QWidget):
             return None
 
         filepath = Path(urls[0].toLocalFile())
-        if filepath.is_file() and filepath.suffix.lower() == ".czi":
+        if filepath.is_file() and filepath.suffix.lower() in (".czi", ".vzip"):
             return filepath
         return None
 
     def eventFilter(self, watched, event):
-        """Handle CZI files dropped on the file selection control."""
+        """Handle images and archives dropped on the file selection control."""
         if watched in (
             self.filename_edit.native,
             self.filename_edit.line_edit.native,
@@ -313,33 +373,71 @@ class CziReaderWidget(QWidget):
         self._reset_range_sliders()
 
         # Disable loading controls until new metadata is loaded
+        self.vzip_status.setText("")
         self._set_load_controls_enabled(False)
+        self._valid_input = False
+        self._vzip_archive = None
+        self.metadata = None
 
         # If filepath is empty, just leave the widgets reset
         if not filepath:
+            return
+
+        path = Path(filepath)
+        if path.suffix.lower() not in (".czi", ".vzip"):
+            return
+        if path != self._archive_source_path:
+            self.vzip_path.value = path.with_suffix(".vzip")
+            self._archive_source_path = path
+        if path.suffix.lower() == ".vzip":
+            with self.loading_mode.changed.blocked():
+                self.loading_mode.value = "VZIP"
+            self._sync_vzip_controls()
+            try:
+                self._vzip_archive = open_vzip(path)
+            except Exception as error:
+                logger.exception("Failed to open VZIP metadata: %s", path)
+                self._vzip_failed(error)
+                return
+            self._display_vzip_metadata(self._vzip_archive)
+            self._update_vzip_sliders()
+            self._valid_input = True
+            self._set_load_controls_enabled(True)
             return
 
         # Create metadata from the selected file
         try:
             self.metadata = CziMetadata(filepath)
         except (FileNotFoundError, ValueError, OSError) as e:
-            logger.error("Failed to load metadata from file %s: %s", filepath, str(e))
+            logger.error(
+                "Failed to load metadata from file %s: %s", filepath, str(e)
+            )
             return
 
         # check if scenes have identical shapes
-        scenes_consistent = self.metadata.scene_shape_is_consistent
+        scenes_consistent = (
+            True
+            if self.loading_mode.value == "VZIP"
+            else self.metadata.scene_shape_is_consistent
+        )
         self.scenes_consistent = scenes_consistent
 
         # Compute actual W/H differences from bounding rectangles and update UI.
         self._update_scene_diff_ui(filepath)
+        self._sync_vzip_controls()
+        self._valid_input = True
 
         # create a nested dictionary for the tree and a reduced dictionary for the table
-        md_dict_tree = czimd.create_md_dict_nested(self.metadata, sort=True, remove_none=True)
+        md_dict_tree = czimd.create_md_dict_nested(
+            self.metadata, sort=True, remove_none=True
+        )
         # drop certain entries
         md_dict_tree.pop("bbox", None)
         self.mdtree.setData(md_dict_tree, expandlevel=0, hideRoot=True)
 
-        md_dict_table = czimd.create_md_dict_red(self.metadata, sort=True, remove_none=True)
+        md_dict_table = czimd.create_md_dict_red(
+            self.metadata, sort=True, remove_none=True
+        )
 
         # Convert all numpy values to native Python types for better display
         with contextlib.suppress(Exception):  # Catch any conversion errors
@@ -357,7 +455,6 @@ class CziReaderWidget(QWidget):
         }
 
         if self.sliders == SliderType.TwoSliders:
-
             for size_attr, slider in slider_mapping.items():
                 size_value = getattr(self.metadata.image, size_attr, None)
                 # logger.info("Size attribute %s has value: %s", size_attr, size_value)
@@ -400,7 +497,6 @@ class CziReaderWidget(QWidget):
             self.main_layout.update()
 
         elif self.sliders == SliderType.DoubleRangeSlider:
-
             for size_attr, slider in slider_mapping.items():
                 size_value = getattr(self.metadata.image, size_attr, None)
                 if size_value is not None and size_value > 1:
@@ -440,14 +536,196 @@ class CziReaderWidget(QWidget):
 
     def _set_load_controls_enabled(self, enabled: bool) -> None:
         """Keep pixel-loading options synchronized with the load button."""
-        self.load_pixeldata.enabled = enabled
-        self.max_coarse_edge_label.setEnabled(enabled)
-        self.max_coarse_edge_spinbox.setEnabled(enabled)
+        use_vzip = self.loading_mode.value == "VZIP"
+        available = not use_vzip or vzip_available()
+        self.load_pixeldata.enabled = enabled and available
+        self.max_coarse_edge_label.setEnabled(enabled and not use_vzip)
+        self.max_coarse_edge_spinbox.setEnabled(enabled and not use_vzip)
+        self._sync_vzip_controls()
+        if use_vzip and not available:
+            self.vzip_status.setText(INSTALL_HINT)
+
+    def _sync_vzip_controls(self) -> None:
+        """Show archive controls only for VZIP and protect incompatible options."""
+        use_vzip = self.loading_mode.value == "VZIP"
+        self.vzip_controls.setVisible(use_vzip)
+        self.vzip_warning.setVisible(use_vzip)
+        self.vzip_status.setVisible(use_vzip)
+        self.vzip_path.enabled = (
+            Path(self.filename_edit.value).suffix.lower() != ".vzip"
+        )
+        if use_vzip:
+            self.stack_scenes_checkbox.setChecked(False)
+            self.stack_scenes_checkbox.setEnabled(False)
+            self.scene_diff_label.setVisible(False)
+
+    def _loading_mode_changed(self) -> None:
+        """Refresh selections and metadata when switching loading backends."""
+        self._sync_vzip_controls()
+        self._file_changed()
+
+    def _display_vzip_metadata(self, archive: VzipArchive) -> None:
+        """Present archive provenance and OME metadata without CZI parsing."""
+        metadata = {
+            "Archive": str(archive.path),
+            "CZI source": str(archive.source),
+            **{f"Size{axis}": size for axis, size in archive.sizes.items()},
+        }
+        self.mdtable.update_metadata(metadata)
+        self.mdtree.setData(
+            {
+                **metadata,
+                "Images": {image.name: image.ome for image in archive.images},
+            },
+            expandlevel=0,
+            hideRoot=True,
+        )
+
+    def _update_vzip_sliders(self) -> None:
+        """Expose common T/C/Z ranges and independent scene selection."""
+        self.scenes_consistent = True
+        for axis, name in (
+            ("S", "scene_slider"),
+            ("T", "time_slider"),
+            ("C", "channel_slider"),
+            ("Z", "z_slider"),
+        ):
+            size = self._vzip_archive.sizes[axis]
+            slider = getattr(self, name)
+            if self.sliders == SliderType.TwoSliders:
+                slider.min_slider.min = slider.max_slider.min = 0
+                slider.min_slider.max = slider.max_slider.max = size - 1
+                slider.min_slider.value = 0
+                slider.max_slider.value = size - 1
+                slider.enabled = size > 1
+            else:
+                slider.setProperty("single_value_mode", False)
+                slider.setMinimum(0)
+                slider.setMaximum(size - 1)
+                slider.setLow(0)
+                slider.setHigh(size - 1)
+                slider.setEnabled(size > 1)
+                slider.setVisible(size > 1)
+
+    def _existing_vzip_choice(self, destination: Path) -> str:
+        """Ask before reusing or replacing an existing reference archive."""
+        dialog = QMessageBox(self)
+        dialog.setWindowTitle("Existing VZIP archive")
+        dialog.setText(f"Archive already exists:\n{destination}")
+        dialog.setInformativeText(
+            "Reuse assumes the original CZI is unchanged."
+        )
+        reuse = dialog.addButton("Reuse", QMessageBox.ButtonRole.AcceptRole)
+        rebuild = dialog.addButton(
+            "Rebuild", QMessageBox.ButtonRole.DestructiveRole
+        )
+        cancel = dialog.addButton(QMessageBox.StandardButton.Cancel)
+        dialog.setDefaultButton(reuse)
+        dialog.setEscapeButton(cancel)
+        dialog.exec()
+        if dialog.clickedButton() is reuse:
+            return "reuse"
+        if dialog.clickedButton() is rebuild:
+            return "rebuild"
+        return "cancel"
+
+    def _start_vzip_load(
+        self, planes: typing.Dict[str, typing.Tuple[int, int]]
+    ) -> None:
+        """Snapshot inputs and run export and layer preparation off the GUI thread."""
+        from napari.qt.threading import create_worker
+
+        if not vzip_available():
+            self._vzip_failed(ImportError(INSTALL_HINT))
+            return
+        source = Path(self.filename_edit.value)
+        destination = (
+            source
+            if source.suffix.lower() == ".vzip"
+            else Path(self.vzip_path.value)
+        )
+        if destination.suffix.lower() != ".vzip" or destination.is_dir():
+            self._vzip_failed(
+                ValueError("Choose a .vzip archive destination.")
+            )
+            return
+        if not destination.parent.is_dir():
+            self._vzip_failed(
+                FileNotFoundError(
+                    "The archive destination directory does not exist."
+                )
+            )
+            return
+        rebuild = False
+        if source.suffix.lower() == ".czi" and destination.exists():
+            choice = self._existing_vzip_choice(destination)
+            if choice == "cancel":
+                return
+            rebuild = choice == "rebuild"
+        self.vzip_status.setText("Preparing VZIP...")
+        self.vzip_progress.show()
+        self.setEnabled(False)
+        self._vzip_closed = False
+        self._vzip_worker = create_worker(
+            prepare_vzip,
+            source,
+            destination,
+            rebuild,
+            planes,
+            _start_thread=False,
+            _ignore_errors=True,
+        )
+        self._vzip_worker.returned.connect(self._vzip_loaded)
+        self._vzip_worker.errored.connect(self._vzip_failed)
+        self._vzip_worker.finished.connect(self._vzip_finished)
+        self._vzip_worker.start()
+
+    def _vzip_loaded(self, result: typing.Tuple[VzipArchive, Any]) -> None:
+        """Add prepared layers to this viewer on the Qt main thread."""
+        if self._vzip_closed:
+            return
+        archive, layers = result
+        added = []
+        try:
+            for data, kwargs, _ in layers:
+                added.append(self.viewer.add_image(data, **kwargs))
+        except Exception as error:
+            logger.exception("Failed to display VZIP: %s", archive.path)
+            for layer in added:
+                self.viewer.layers.remove(layer)
+            self._vzip_failed(error)
+            return
+        self.vzip_status.setText(f"Opened archive: {archive.path}")
+
+    def _vzip_failed(self, error: Exception) -> None:
+        """Report external export/read failures without silently changing backends."""
+        from napari.utils.notifications import show_error
+
+        logger.error(
+            "VZIP operation failed: %s",
+            error,
+            exc_info=(type(error), error, error.__traceback__),
+        )
+        self.vzip_status.setText(str(error))
+        if not self._vzip_closed:
+            show_error(str(error))
+
+    def _vzip_finished(self) -> None:
+        """Restore loading controls after either success or failure."""
+        self.vzip_progress.hide()
+        self.setEnabled(True)
+        self._vzip_worker = None
+        self._set_load_controls_enabled(self._valid_input)
+
+    def closeEvent(self, event) -> None:
+        """Discard worker results when the reader widget has been closed."""
+        self._vzip_closed = True
+        super().closeEvent(event)
 
     def _update_scene_diff_ui(self, filepath: str) -> None:
         """Read scene bounding rectangles, compute W/H diffs, and update the stack-scenes UI."""
-        from pylibCZIrw import czi as pyczi
         from czitools.utils.misc import get_pyczi_readertype
+        from pylibCZIrw import czi as pyczi
 
         self._scene_stack_tolerance = 0
         self.stack_scenes_checkbox.setChecked(False)
@@ -463,6 +741,7 @@ class CziReaderWidget(QWidget):
                 widths = [r.w for r in rects.values()]
                 heights = [r.h for r in rects.values()]
         except Exception:
+            logger.exception("Could not read scene bounds for %s", filepath)
             return
 
         w_diff = max(widths) - min(widths)
@@ -473,19 +752,32 @@ class CziReaderWidget(QWidget):
 
         # Store the tolerance needed to stack all scenes.
         self._scene_stack_tolerance = max(w_diff, h_diff)
-        self.scene_diff_label.setText(f"Scene size diff — W: {w_diff}px  H: {h_diff}px")
+        self.scene_diff_label.setText(
+            f"Scene size diff — W: {w_diff}px  H: {h_diff}px"
+        )
         self.scene_diff_label.setVisible(True)
         self.stack_scenes_checkbox.setEnabled(True)
 
     def _stack_scenes_changed(self) -> None:
         """Re-evaluate metadata consistency and update the scene slider when checkbox is toggled."""
+        if self.loading_mode.value == "VZIP":
+            return
         filepath = self.filename_edit.value
         if not filepath:
             return
-        tolerance = self._scene_stack_tolerance if self.stack_scenes_checkbox.isChecked() else 0
+        tolerance = (
+            self._scene_stack_tolerance
+            if self.stack_scenes_checkbox.isChecked()
+            else 0
+        )
         try:
-            self.metadata = CziMetadata(filepath, scene_shape_tolerance=tolerance)
+            self.metadata = CziMetadata(
+                filepath, scene_shape_tolerance=tolerance
+            )
         except Exception:
+            logger.exception(
+                "Could not update scene metadata for %s", filepath
+            )
             return
         self.scenes_consistent = self.metadata.scene_shape_is_consistent
         size_s = getattr(self.metadata.image, "SizeS", None)
@@ -495,10 +787,16 @@ class CziReaderWidget(QWidget):
             self.scene_slider.min_slider.setEnabled(True)
             self.scene_slider.max_slider.setEnabled(self.scenes_consistent)
             self.scene_slider.min_slider.value = 0
-            self.scene_slider.max_slider.value = size_s - 1 if self.scenes_consistent else 0
+            self.scene_slider.max_slider.value = (
+                size_s - 1 if self.scenes_consistent else 0
+            )
         elif self.sliders == SliderType.DoubleRangeSlider:
-            self.scene_slider.setProperty("single_value_mode", not self.scenes_consistent)
-            self.scene_slider.setHigh(size_s - 1 if self.scenes_consistent else 0)
+            self.scene_slider.setProperty(
+                "single_value_mode", not self.scenes_consistent
+            )
+            self.scene_slider.setHigh(
+                size_s - 1 if self.scenes_consistent else 0
+            )
 
     def _mdwidget_changed(self):
         """Callback for when the metadata display combo box changes."""
@@ -618,6 +916,9 @@ class CziReaderWidget(QWidget):
             os.path.basename(self.filename_edit.value),
             planes,
         )
+        if self.loading_mode.value == "VZIP":
+            self._start_vzip_load(planes)
+            return
         reader_function_adv(
             self.filename_edit.value,
             zoom=1.0,
@@ -627,7 +928,11 @@ class CziReaderWidget(QWidget):
             use_multiscale=True,
             max_coarse_edge=self.max_coarse_edge_spinbox.value(),
             show_metadata=MetadataDisplayMode.NONE,
-            scene_stack_tolerance=(self._scene_stack_tolerance if self.stack_scenes_checkbox.isChecked() else 0),
+            scene_stack_tolerance=(
+                self._scene_stack_tolerance
+                if self.stack_scenes_checkbox.isChecked()
+                else 0
+            ),
         )
 
     def _slider_type_changed(self, value):
@@ -653,7 +958,9 @@ class CziReaderWidget(QWidget):
         self._create_sliders()
 
         # If we have metadata loaded, update the new sliders
-        if hasattr(self, "metadata") and self.metadata is not None:
+        if self._vzip_archive is not None:
+            self._update_vzip_sliders()
+        elif hasattr(self, "metadata") and self.metadata is not None:
             self._update_sliders_from_metadata()
 
     def _remove_existing_sliders(self):

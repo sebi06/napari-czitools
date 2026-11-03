@@ -35,7 +35,11 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+vzip = [
+    "refkv[zarr,images]>=0.2.0",
+]
 testing = [
+    "refkv[zarr,images]>=0.2.0",
     "tox",
     "pytest",
     "pytest-cov",

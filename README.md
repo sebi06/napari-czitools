@@ -16,6 +16,7 @@
       - [Reading a subset](#reading-a-subset)
       - [3D Preview Size](#3d-preview-size)
       - [Lazy Loading](#lazy-loading)
+      - [VZIP Loading](#vzip-loading)
       - [Scene Tolerance](#scene-tolerance)
       - [Gigapixel CZIs (whole-slide, large 2D scans)](#gigapixel-czis-whole-slide-large-2d-scans)
       - [Advanced Python usage](#advanced-python-usage)
@@ -60,6 +61,17 @@ You can install `napari-czitools` via [pip]:
     pip install napari-czitools
 
 The current release requires Python 3.12 or 3.13 and `czitools>=0.22.1`.
+
+VZIP support is optional:
+
+```bash
+pip install "napari-czitools[vzip]"
+```
+
+Creating new archives also requires a `czitools` build exposing
+`czitools.export_tools.create_czi_vzip`. Until that API is released on PyPI,
+install the current `czitools` checkout with its `vzip` extra. Existing CZI
+loading does not require refkv. Without it, VZIP mode shows installation guidance.
 
 To install latest development version :
 
@@ -115,7 +127,7 @@ metadata in a table or tree.
 Open **Plugins > Advanced CZI Reader (CziReadTools)**. The initial panel has
 four main areas:
 
-1. Select a local CZI file. Drag and drop onto the file field is also supported.
+1. Select a local CZI or CZI-derived VZIP file. Drag and drop onto the file field is also supported.
 2. Inspect metadata as a table or tree. Tree view can optionally show value
   types.
 3. Configure scene handling and the 3D preview, then load the selected pixels.
@@ -176,6 +188,45 @@ metadata loads. For small images, changing it often has no visible effect
 because the existing coarsest level already fits.
 
 ![3D rendering with the 3D preview size control](https://github.com/sebi06/napari-czitools/raw/main/readme_images/3D_preview_size.png)
+
+#### VZIP Loading
+
+Choose **Load using: VZIP** in the existing reader widget. The default remains
+**CZI**, which continues to use the normal lazy multiscale reader.
+
+For a selected CZI, the archive destination defaults to a sibling `image.vzip`.
+The **Archive** field allows a different destination; its parent directory must
+already exist. **Load Pixel Data** creates the archive in a background worker,
+then adds lazy image layers. If the archive exists, choose **Reuse**, **Rebuild**,
+or **Cancel**. Reuse never rewrites it and checks that it references the selected
+CZI. Rebuild explicitly replaces it through the protected czitools exporter.
+
+The archive references the **whole CZI**. Scene/Time/Channel/Z selections apply
+only to the displayed layers, so changing selections does not require rebuilding.
+Selecting an existing `.vzip` automatically switches the widget to VZIP mode.
+Its metadata table/tree and sliders are populated from the archive without
+parsing the CZI again. For scenes with different T/C/Z lengths, the widget exposes
+the ranges common to all scenes; scenes remain separate layers, not a stack.
+
+Existing CZI-derived archives can also be opened through **File > Open**, dropped
+onto the napari canvas, or opened from Python:
+
+```python
+viewer.open("image.vzip", plugin="napari-czitools")
+```
+
+Direct opening displays all scenes and channels. Stored pyramid levels are used
+when present, with OME axes, physical scale/origin, channel colors, and display
+windows preserved. **Stack scenes** and generated **3D preview size** are disabled
+in VZIP mode; no additional pyramid levels are synthesized.
+
+**VZIP contains references, not copied CZI pixels.** The original local CZI must
+remain unchanged at its recorded location. Missing sources and unsupported
+archives produce explicit errors, never a silent fallback to another reader.
+Reuse does not fingerprint source contents or automatically detect every source
+change. Rebuild after modifying a CZI. Only CZI-derived refkv archives with local
+sources are supported; arbitrary VZIP formats and remote sources are not claimed
+as supported data. CZI layouts and compression support are determined by refkv.
 
 #### Lazy Loading
 

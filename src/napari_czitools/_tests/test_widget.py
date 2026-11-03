@@ -13,7 +13,10 @@ from napari_czitools._widget import (
 )
 
 # Check if we're running in a headless environment (like GitHub Actions)
-HEADLESS = os.environ.get("CI") == "true" or os.environ.get("GITHUB_ACTIONS") == "true"
+HEADLESS = (
+    os.environ.get("CI") == "true"
+    or os.environ.get("GITHUB_ACTIONS") == "true"
+)
 
 # Skip GUI tests in headless environments unless xvfb is available
 pytestmark = pytest.mark.skipif(
@@ -43,13 +46,19 @@ def test_czi_reader_widget_initialization(make_napari_viewer):
     # assert isinstance(widget.channel_slider, RangeSliderWidget)
     # assert isinstance(widget.z_slider, RangeSliderWidget)
 
-    assert isinstance(widget.scene_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
-    assert isinstance(widget.time_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+    assert isinstance(
+        widget.scene_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
+    )
+    assert isinstance(
+        widget.time_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
+    )
     assert isinstance(
         widget.channel_slider,
         RangeSliderWidget | LabeledDoubleRangeSliderWidget,
     )
-    assert isinstance(widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget)
+    assert isinstance(
+        widget.z_slider, RangeSliderWidget | LabeledDoubleRangeSliderWidget
+    )
 
 
 def test_czi_reader_widget_allows_wide_dock(qapp):
@@ -70,16 +79,19 @@ def test_czi_reader_widget_allows_wide_dock(qapp):
 
     assert widget.maximumWidth() == MAX_DOCK_WIDTH
     assert dock.maximumWidth() == MAX_DOCK_WIDTH
-    assert widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
+    assert (
+        widget.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
+    )
     assert dock.sizePolicy().horizontalPolicy() == QSizePolicy.Policy.Expanding
     assert widget.sizePolicy().verticalPolicy() == QSizePolicy.Policy.Expanding
     assert dock.sizePolicy().verticalPolicy() == QSizePolicy.Policy.Expanding
     assert widget.geometry().y() == initial_widget_y
 
 
-def test_czi_reader_widget_accepts_dropped_czi(qapp, tmp_path):
-    """Test that dropping one local CZI updates the file selection."""
-    filepath = tmp_path / "image.CZI"
+@pytest.mark.parametrize("extension", [".CZI", ".vzip", ".VZIP"])
+def test_czi_reader_widget_accepts_dropped_czi(qapp, tmp_path, extension):
+    """Test that dropping one local CZI or archive updates the file selection."""
+    filepath = tmp_path / f"image{extension}"
     filepath.touch()
     widget = CziReaderWidget(object())
     widget.filename_edit.line_edit.changed.disconnect(widget._file_changed)

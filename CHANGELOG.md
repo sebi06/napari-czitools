@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Optional `napari-czitools[vzip]` support for CZI-derived reference archives.
+- CZI/VZIP loading mode in the existing reader, a configurable sibling archive
+	destination, and explicit Reuse/Rebuild/Cancel handling for existing archives.
+- Background archive creation using `czitools.export_tools.create_czi_vzip` and
+	lazy display-only S/T/C/Z selections without cropping the saved archive.
+- VZIP opening through File/Open, canvas drops, and the widget, with OME-based
+	metadata/sliders, channel display settings, scaling, and stored pyramid levels.
+- Source-availability and CZI-provenance checks with actionable errors rather
+	than silent fallback. Normal CZI loading remains the default without refkv.
+
 ## [0.12.4] - 2026-08-28
 
 ### Fixed
