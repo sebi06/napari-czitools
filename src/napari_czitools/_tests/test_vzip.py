@@ -260,7 +260,7 @@ def test_vzip_mode_missing_dependency_guidance(qapp, monkeypatch):
     assert widget.vzip_controls.isHidden()
     widget.loading_mode.value = "VZIP"
     assert widget.vzip_controls.isHidden()
-    assert not widget.vzip_warning.isHidden()
+    assert not widget.vzip_status.isHidden()
     assert not widget.load_pixeldata.enabled
     assert widget.vzip_status.text() == INSTALL_HINT
     assert not widget.max_coarse_edge_spinbox.isEnabled()
@@ -378,7 +378,7 @@ def test_existing_archive_hides_destination_action(archive, qapp, mocker):
     dialog.assert_not_called()
     assert widget.vzip_controls.isHidden()
     assert widget.vzip_destination_label.isHidden()
-    assert not widget.vzip_warning.isHidden()
+    assert not hasattr(widget, "vzip_warning")
 
 
 def test_archive_worker_adds_layers_on_main_thread(

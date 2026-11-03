@@ -224,11 +224,6 @@ class CziReaderWidget(QWidget):
         archive_layout.addWidget(self.save_archive_as)
         self.vzip_destination_label = QLabel("")
         self.vzip_destination_label.setWordWrap(True)
-        self.vzip_warning = QLabel(
-            "VZIP references the original CZI. Keep it unchanged at its original location."
-        )
-        self.vzip_warning.setWordWrap(True)
-        self.main_layout.addWidget(self.vzip_warning)
         self.vzip_status = QLabel("")
         self.vzip_status.setWordWrap(True)
         self.main_layout.addWidget(self.vzip_status)
@@ -573,7 +568,6 @@ class CziReaderWidget(QWidget):
             self.vzip_destination_label.setToolTip(
                 str(self._vzip_destination.absolute())
             )
-        self.vzip_warning.setVisible(use_vzip)
         self.vzip_status.setVisible(use_vzip)
         if use_vzip:
             self.stack_scenes_checkbox.setChecked(False)
