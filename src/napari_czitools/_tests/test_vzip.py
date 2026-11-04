@@ -144,11 +144,100 @@ def test_rectilinear_archive_lazy_selections(archive, monkeypatch):
         assert reads
 
 
-def test_no_selection_reads_all_scene_channel_layers(archive):
-    """Direct opening returns independent scene layers rather than stacking."""
+def test_no_selection_reads_all_scene_channel_layers(archive, monkeypatch):
+    """Direct opening lazily stacks compatible scene pyramids per channel."""
+    import zarr
+
+    reads = []
+    getitem = zarr.Array.__getitem__
+
+    def record(array, selection):
+        reads.append(selection)
+        return getitem(array, selection)
+
+    monkeypatch.setattr(zarr.Array, "__getitem__", record)
     layers = read_vzip([str(archive[0])])
+    assert not reads
+    assert len(layers) == 3
+    for channel, (levels, kwargs, _) in enumerate(layers):
+        assert levels[0].shape == (2, 2, 4, 8, 10)
+        assert levels[1].shape == (2, 2, 4, 4, 5)
+        assert levels[0].chunks[0] == (1, 1)
+        assert kwargs["axis_labels"] == ("S", "t", "z", "y", "x")
+        assert kwargs["scale"] == (1, 2, 0.5, 0.1, 0.1)
+        assert [scene["series"] for scene in kwargs["metadata"]["scenes"]] == [
+            "0",
+            "1",
+        ]
+        np.testing.assert_array_equal(
+            levels[0].compute(),
+            np.stack([archive[3][:, channel], (archive[3] + 1)[:, channel]]),
+        )
+
+
+def test_selected_scene_stack_preserves_ranges_and_origins(archive):
+    """Stack only selected scenes/channels and retain T/Z and stage offsets."""
+    path, _, root, data = archive
+    group = root.create_group("2")
+    group.create_array("0", data=data + 2)
+    group.create_array("1", data=(data + 2)[..., ::2, ::2])
+    group.attrs["ome"] = dict(root["0"].attrs["ome"])
+    opened = open_vzip(path)
+    for scene, image in enumerate(opened.images):
+        image.datasets[0]["coordinateTransformations"].append(
+            {
+                "type": "translation",
+                "translation": [0, 0, 0, scene * 100, scene * 200],
+            }
+        )
+    layers = vzip_layers(
+        opened, {"S": (1, 2), "T": (1, 1), "C": (1, 1), "Z": (1, 2)}
+    )
+    assert len(layers) == 1
+    levels, kwargs, _ = layers[0]
+    assert levels[0].shape == (2, 1, 2, 8, 10)
+    assert kwargs["axis_labels"] == ("S", "t", "z", "y", "x")
+    assert kwargs["translate"] == (1, 2, 0.5, 0, 0)
+    assert [
+        scene["scene_index"] for scene in kwargs["metadata"]["scenes"]
+    ] == [1, 2]
+    assert kwargs["metadata"]["scenes"][0]["translate"] == (2, 0.5, 100, 200)
+    np.testing.assert_array_equal(
+        levels[0].compute(),
+        np.stack([(data + scene)[1:2, 1, 1:3] for scene in (1, 2)]),
+    )
+
+
+@pytest.mark.parametrize("difference", ["shape", "scale", "dtype", "levels"])
+def test_incompatible_scenes_remain_separate(archive, difference):
+    """Never crop, resample, or promote incompatible scenes to force stacking."""
+    import zarr
+
+    opened = open_vzip(archive[0])
+    image = opened.images[1]
+    if difference == "shape":
+        image.arrays[0] = zarr.create_array({}, data=archive[3][..., :-1, :])
+    elif difference == "dtype":
+        image.arrays[0] = zarr.create_array(
+            {}, data=archive[3].astype("uint8")
+        )
+    elif difference == "scale":
+        image.datasets[0]["coordinateTransformations"][0]["scale"] = [
+            2,
+            1,
+            0.5,
+            0.2,
+            0.1,
+        ]
+    else:
+        image.arrays = image.arrays[:1]
+        image.datasets = image.datasets[:1]
+    layers = vzip_layers(opened)
     assert len(layers) == 6
-    assert layers[0][0][0].shape == (2, 4, 8, 10)
+    assert all(
+        kwargs["axis_labels"] == ("t", "z", "y", "x")
+        for _, kwargs, _ in layers
+    )
 
 
 def test_missing_source_and_non_czi_archive(archive):
@@ -215,7 +304,7 @@ def test_prepare_reuses_archive_and_checks_source(archive, monkeypatch):
     )
     path, source, _, _ = archive
     _, layers = prepare_vzip(source, path, False, {})
-    assert len(layers) == 6
+    assert len(layers) == 3
     other_source = source.with_name("other.czi")
     other_source.touch()
     with pytest.raises(ValueError, match="not .*other.czi"):
@@ -441,8 +530,9 @@ def test_archive_worker_adds_layers_on_main_thread(
     widget._loadbutton_pressed()
     assert not widget.isEnabled()
     qtbot.waitUntil(lambda: widget._vzip_worker is None, timeout=10000)
-    assert len(viewer.layers) == 6
-    assert calls == [main_thread] * 6
+    assert len(viewer.layers) == 3
+    assert calls == [main_thread] * 3
+    assert viewer.layers[0].axis_labels == ("S", "t", "z", "y", "x")
     assert widget.isEnabled()
     assert widget.vzip_progress.isHidden()
     assert "Opened archive" in widget.vzip_status.text()

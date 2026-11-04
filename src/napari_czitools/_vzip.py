@@ -44,6 +44,7 @@ class VzipImage:
     arrays: typing.List[Any]
     datasets: typing.List[typing.Dict[str, Any]]
     ome: typing.Dict[str, Any]
+    multiscale_index: int = 0
 
 
 @dataclass
@@ -136,7 +137,9 @@ def open_vzip(path: typing.Union[str, Path]) -> VzipArchive:
             ):
                 raise ValueError(f"Unsupported image axes in series {name}.")
             series_name = name if index == 0 else f"{name}/{index}"
-            images.append(VzipImage(series_name, axes, arrays, datasets, ome))
+            images.append(
+                VzipImage(series_name, axes, arrays, datasets, ome, index)
+            )
     if not images:
         raise ValueError("The archive contains no OME image series.")
     return VzipArchive(archive_path, source, images, attributes)
@@ -156,13 +159,93 @@ def _bounds(
     return low, high
 
 
+def _stack_scene_layers(
+    layers: typing.List[typing.Tuple[Any, typing.Dict[str, Any], str]],
+    archive: VzipArchive,
+) -> typing.List[typing.Tuple[Any, typing.Dict[str, Any], str]]:
+    """Stack compatible selected scenes per channel without reading pixels."""
+    import dask.array as da
+
+    channels = {}
+    for layer in layers:
+        metadata = layer[1]["metadata"]
+        key = (metadata["multiscale_index"], metadata["channel"])
+        channels.setdefault(key, []).append(layer)
+    result = []
+    for scenes in channels.values():
+        first = scenes[0][1]
+        levels = [
+            data if kwargs["multiscale"] else [data]
+            for data, kwargs, _ in scenes
+        ]
+        compatible = all(
+            kwargs["axis_labels"] == first["axis_labels"]
+            and np.allclose(kwargs["scale"], first["scale"])
+            and len(scene_levels) == len(levels[0])
+            and all(
+                level.shape == reference.shape
+                and level.dtype == reference.dtype
+                for level, reference in zip(
+                    scene_levels, levels[0], strict=True
+                )
+            )
+            for scene_levels, (_, kwargs, _) in zip(
+                levels, scenes, strict=True
+            )
+        )
+        if (
+            len(scenes) < 2
+            or "s" in (axis.lower() for axis in first["axis_labels"])
+            or not compatible
+        ):
+            result.extend(scenes)
+            continue
+        stacked = [
+            da.stack(level, axis=0) for level in zip(*levels, strict=True)
+        ]
+        metadata = {
+            **first["metadata"],
+            "scenes": [
+                {
+                    **kwargs["metadata"],
+                    "scale": kwargs["scale"],
+                    "translate": kwargs["translate"],
+                }
+                for _, kwargs, _ in scenes
+            ],
+        }
+        kwargs = {
+            **first,
+            "name": f"{archive.path.stem} | {metadata['channel_label']}",
+            "axis_labels": ("S",) + first["axis_labels"],
+            "scale": (1.0,) + first["scale"],
+            "translate": (float(metadata["scene_index"]),)
+            + tuple(
+                (
+                    origin
+                    if all(
+                        scene[1]["translate"][index] == origin
+                        for scene in scenes
+                    )
+                    else 0.0
+                )
+                for index, origin in enumerate(first["translate"])
+            ),
+            "metadata": metadata,
+        }
+        result.append(
+            (stacked if first["multiscale"] else stacked[0], kwargs, "image")
+        )
+    return result
+
+
 def vzip_layers(
     archive: VzipArchive,
     planes: typing.Dict[str, typing.Tuple[int, int]] | None = None,
 ) -> typing.List[typing.Tuple[Any, typing.Dict[str, Any], str]]:
     """Build lazy layer tuples, slicing by OME axis names rather than positions.
 
-    Scenes remain independent layers, including differently sized scenes.
+    Compatible scenes stack along S; incompatible scenes remain separate.
     Embedded contrast windows avoid napari scanning the complete lazy image.
     """
     import dask.array as da
@@ -171,7 +254,9 @@ def vzip_layers(
     planes = planes or {}
     scene_low, scene_high = _bounds(planes, "s", len(archive.images))
     layers = []
-    for image in archive.images[scene_low : scene_high + 1]:
+    for scene_index, image in enumerate(
+        archive.images[scene_low : scene_high + 1], start=scene_low
+    ):
         axes = image.axes
         base = image.arrays[0]
         for axis in ("t", "z"):
@@ -285,13 +370,17 @@ def vzip_layers(
                     "vzip": str(archive.path),
                     "czi_source": str(archive.source),
                     "series": image.name,
+                    "scene_index": scene_index,
+                    "multiscale_index": image.multiscale_index,
+                    "channel": channel_index,
+                    "channel_label": label,
                     "ome": image.ome,
                 },
             }
             layers.append(
                 (levels if len(levels) > 1 else levels[0], kwargs, "image")
             )
-    return layers
+    return _stack_scene_layers(layers, archive)
 
 
 def read_vzip(

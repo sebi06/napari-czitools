@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Virtual-Zarr/VZIP loading now stacks compatible selected CZI scenes lazily
+	along a leading S axis, with one layer per channel. Scene transforms remain
+	available in metadata; incompatible scenes remain separate without resampling.
 - Unified CZI/VZIP opening into one file selector with loading mode directly
 	beneath it. Replaced the second archive selector with an optional
 	**Save archive as...** destination action beside the load button; creation

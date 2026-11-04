@@ -211,7 +211,17 @@ Selecting an existing `.vzip` in that same selector automatically switches the
 widget to VZIP mode and hides archive-creation and destination controls.
 Its metadata table/tree and sliders are populated from the archive without
 parsing the CZI again. For scenes with different T/C/Z lengths, the widget exposes
-the ranges common to all scenes; scenes remain separate layers, not a stack.
+the ranges common to all scenes.
+
+Compatible selected scenes are automatically stacked lazily along a leading
+**S** axis, with one layer per channel. For example, 28 equally sized 2D scenes
+become one `(28, Y, X)` layer per channel. Scene order follows the archive's
+numeric series order, and S/T/C/Z selections still apply only to display.
+Stacking requires matching axes, shapes, dtypes, physical scales and pyramid
+levels; incompatible scenes remain separate without cropping or resampling.
+Scene-dependent stage origins become local coordinates in the stack, while
+the original per-scene transforms and metadata are retained in the layer's
+`metadata["scenes"]` list.
 
 Existing CZI-derived archives can also be opened through **File > Open**, dropped
 onto the napari canvas, or opened from Python:
