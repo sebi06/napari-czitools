@@ -62,6 +62,9 @@ You can install `napari-czitools` via [pip]:
 
 The current release requires Python 3.12 or 3.13 and `czitools>=0.22.1`.
 
+Version **0.13.0** adds optional VZIP loading and lazy scene stacking. See the
+[v0.13.0 release notes](_release_notes/v0.13.0.md) for changes and compatibility.
+
 VZIP support is optional:
 
 ```bash
@@ -428,6 +431,10 @@ Note: The `--forked` flag is required on Linux to prevent CZI + Qt crashes by ru
 ### Recent Compatibility Notes
 
 - `czitools>=0.22.1` is required.
+- Optional VZIP support requires `czitools>=0.27.3` and
+  `refkv[zarr,images]>=0.2.0`; installing `napari-czitools[vzip]` supplies both.
+- The testing extra requires `pytest<9.2` because pytest-forked cannot
+  serialize the new report fields introduced in pytest 9.2.
 - `read_tools.read_stacks` returns
   `(arrays_or_list, dims, num_stacks, metadata)`. The plugin handles both a
   single stacked xarray object and a list containing one xarray stack per

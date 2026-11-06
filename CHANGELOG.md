@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.13.0] - 2026-11-06
+
 ### Fixed
 
 - Require `czitools>=0.27.3` for the optional VZIP extra so archive creation
