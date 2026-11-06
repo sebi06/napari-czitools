@@ -13,7 +13,7 @@ contributions:
 
     - id: napari-czitools.get_reader_adv
       python_name: napari_czitools._reader:napari_get_reader
-      title: Open *.czi image files with CziTools
+      title: Open CZI images and CZI VZIP archives with CziTools
 
     - id: napari-czitools.celldivision_data
       python_name: napari_czitools._sample_data:celldivision_data
@@ -42,7 +42,7 @@ contributions:
   readers:
     - command: napari-czitools.get_reader_adv
       accepts_directories: false
-      filename_patterns: ['*.czi']
+      filename_patterns: ['*.czi', '*.vzip', '*.VZIP']
 
   sample_data:
     - command: napari-czitools.celldivision_data

@@ -7,6 +7,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Require `czitools>=0.27.3` for the optional VZIP extra so archive creation
+	is available without a development checkout; keep the core dependency
+	minimum unchanged.
+- Keep testing on `pytest<9.2` until pytest-forked supports the new report
+	fields, avoiding Linux forked-test serialization failures.
+
+### Changed
+
+- Virtual-Zarr/VZIP loading now stacks compatible selected CZI scenes lazily
+	along a leading S axis, with one layer per channel. Scene transforms remain
+	available in metadata; incompatible scenes remain separate without resampling.
+- Unified CZI/VZIP opening into one file selector with loading mode directly
+	beneath it. Replaced the second archive selector with an optional
+	**Save archive as...** destination action beside the load button; creation
+	controls are hidden when opening an existing archive.
+
+### Added
+
+- Optional `napari-czitools[vzip]` support for CZI-derived reference archives.
+- CZI/VZIP loading mode in the existing reader, a configurable sibling archive
+	destination, and explicit Reuse/Rebuild/Cancel handling for existing archives.
+- Background archive creation using `czitools.export_tools.create_czi_vzip` and
+	lazy display-only S/T/C/Z selections without cropping the saved archive.
+- VZIP opening through File/Open, canvas drops, and the widget, with OME-based
+	metadata/sliders, channel display settings, scaling, and stored pyramid levels.
+- Source-availability and CZI-provenance checks with actionable errors rather
+	than silent fallback. Normal CZI loading remains the default without refkv.
+
 ## [0.12.4] - 2026-08-28
 
 ### Fixed

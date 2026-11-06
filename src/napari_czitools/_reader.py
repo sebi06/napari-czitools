@@ -10,6 +10,7 @@ from ._io import (
     process_channels,
     read_stacks_compat,
 )
+from ._vzip import read_vzip
 
 logger = logging_tools.set_logging()
 
@@ -17,10 +18,15 @@ logger = logging_tools.set_logging()
 def napari_get_reader(path: str):
 
     if isinstance(path, list):
+        if not path:
+            return None
         # reader plugins may be handed single path, or a list of paths.
         # if it is a list, it is assumed to be an image stack...
         # so we are only going to look at the first file.
         path = path[0]
+
+    if str(path).lower().endswith(".vzip"):
+        return read_vzip
 
     # if we know we cannot read the file, we immediately return None.
     if not path.endswith(".czi"):
@@ -149,7 +155,6 @@ def reader_function(
     channel_layers = process_channels(array6d, metadata)
 
     for chl in channel_layers:
-
         layer_kwargs: dict = {
             "name": chl.name,
             "scale": chl.scale,
