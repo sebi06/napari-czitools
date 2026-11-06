@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Require `czitools>=0.27.3` for the optional VZIP extra so archive creation
+	is available without a development checkout; keep the core dependency
+	minimum unchanged.
+- Keep testing on `pytest<9.2` until pytest-forked supports the new report
+	fields, avoiding Linux forked-test serialization failures.
+
 ### Changed
 
 - Virtual-Zarr/VZIP loading now stacks compatible selected CZI scenes lazily

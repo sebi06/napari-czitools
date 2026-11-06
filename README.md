@@ -68,10 +68,10 @@ VZIP support is optional:
 pip install "napari-czitools[vzip]"
 ```
 
-Creating new archives also requires a `czitools` build exposing
-`czitools.export_tools.create_czi_vzip`. Until that API is released on PyPI,
-install the current `czitools` checkout with its `vzip` extra. Existing CZI
-loading does not require refkv. Without it, VZIP mode shows installation guidance.
+Creating new archives requires `czitools>=0.27.3`, which provides
+`czitools.export_tools.create_czi_vzip`. The `vzip` extra enforces this
+minimum alongside refkv. Existing CZI loading does not require refkv.
+Without it, VZIP mode shows installation guidance.
 
 To install latest development version :
 
